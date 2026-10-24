@@ -3,13 +3,12 @@ import { promisify } from 'util'
 import { join } from 'path'
 import { availableProfiles, providerProfileId } from '../shared/profiles'
 import type { AppSettings, ShellInfo } from '../shared/types'
+import { EDITION, PRODUCT } from '../shared/edition'
 
 const execFileAsync = promisify(execFile)
-const PARENT_KEYS = [
-  'HKCU\\Software\\Classes\\Directory\\Background\\shell\\TermFlowLite',
-  'HKCU\\Software\\Classes\\Directory\\shell\\TermFlowLite',
-  'HKCU\\Software\\Classes\\Drive\\Background\\shell\\TermFlowLite'
-]
+// Surum basina ayri anahtar: Lite ve Agent IDE ayni anda kurulu olsa da menuleri birbirini ezmez.
+const MENU_KEY = EDITION === 'ide' ? 'TermFlowAgentIDE' : 'TermFlowLite'
+const PARENT_KEYS = ['Directory\\Background', 'Directory', 'Drive\\Background'].map((p) => `HKCU\\Software\\Classes\\${p}\\shell\\${MENU_KEY}`)
 const COMMAND_STORE = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CommandStore\\shell'
 
 export interface ExplorerMenuEntry {
@@ -72,12 +71,12 @@ export async function syncExplorerContextMenu(exePath: string, resourcesPath: st
   if (process.platform !== 'win32') return
   const entries = buildExplorerMenuEntries(settings, shells)
   const existing = await execFileAsync('reg.exe', ['query', COMMAND_STORE], { windowsHide: true })
-    .then(({ stdout }) => stdout.split(/\r?\n/).map((line) => line.trim()).filter((line) => /\\TermFlowLite\.[^\\]+$/i.test(line)))
+    .then(({ stdout }) => stdout.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.toLowerCase().includes(`\\${MENU_KEY.toLowerCase()}.`)))
     .catch(() => [])
   for (const key of existing) await reg(['delete', key, '/f']).catch(() => undefined)
 
   for (const parent of PARENT_KEYS) {
-    await setValue(parent, 'MUIVerb', 'Open in TermFlow Lite')
+    await setValue(parent, 'MUIVerb', `Open in ${PRODUCT.name}`)
     await setValue(parent, 'Icon', `${exePath},0`)
     await setValue(parent, 'SubCommands', '')
     for (const entry of entries) {

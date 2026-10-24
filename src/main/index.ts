@@ -399,8 +399,7 @@ app.whenReady().then(() => {
   // İmza yalnızca BAŞARILI sync sonrası güncellenir — hatalı deneme tekrarlanır.
   let lastMenuSignature: string | null = null
   const refreshContextMenu = (): void => {
-    // shortcut: IDE surumu Explorer menusu yazmaz (Lite'in TermFlowLite anahtarlarini ezerdi); ayri anahtarlar Faz 3+.
-    if (!app.isPackaged || !settingsStore || EDITION === 'ide') return
+    if (!app.isPackaged || !settingsStore) return
     const signature = explorerMenuSignature(settingsStore.get(), currentShells)
     if (signature === lastMenuSignature) return
     void syncExplorerContextMenu(process.execPath, process.resourcesPath, settingsStore.get(), currentShells)

@@ -187,6 +187,14 @@ export function extractPathCandidates(text: string): PathCandidate[] {
   return results.sort((left, right) => (right.end - right.start) - (left.end - left.start) || left.start - right.start)
 }
 
+/** Uzantisiz sade ad ("src", "docs"): klasor olabilir; yalniz cwd'de gercekten varsa link olur (main dogrular). */
+const BARE_NAME = /(?<![\w./\~:-])[A-Za-z_][\w-]{1,40}(?![\w./\:-])/g
+export function extractBareNames(text: string): PathCandidate[] {
+  return [...text.matchAll(BARE_NAME)].slice(0, 40).map((m) => ({ value: m[0], start: m.index! + 1, end: m.index! + m[0].length }))
+}
+
+const withBare = (text: string): PathCandidate[] => [...extractPathCandidates(text), ...extractBareNames(text)]
+
 // cwd|aday -> ResolvedPath | null. 'null' da önbelleklenir ki yok olan bir yol
 // için IPC tekrar edilmesin.
 const resolveCache = new Map<string, ResolvedPath | null>()
@@ -231,7 +239,7 @@ export function registerPathLinkProvider(
         return
       }
       const text = line.translateToString(false)
-      const candidates = extractPathCandidates(text)
+      const candidates = withBare(text)
       if (candidates.length === 0) {
         callback(undefined)
         return
@@ -293,7 +301,7 @@ export async function getPathAtMouse(term: Terminal, e: MouseEvent, cwd: string)
   const line = buffer.getLine(buffer.viewportY + cell.row)
   if (!line) return null
   const col = cell.col + 1 // 0-based -> 1-based
-  for (const cand of extractPathCandidates(line.translateToString(false))) {
+  for (const cand of withBare(line.translateToString(false))) {
     if (col >= cand.start && col <= cand.end) {
       const resolved = await resolvePathCached(cand.value, cwd)
       if (resolved) return { path: resolved.path, isDirectory: resolved.isDirectory, canOpen: resolved.canOpen, label: cand.value, line: cand.line, column: cand.column }

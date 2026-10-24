@@ -14,6 +14,19 @@ describe('resolvePathCandidate', () => {
     expect(resolvePathCandidate(dir, dir)).toEqual({ path: dir, isDirectory: true, canOpen: true })
   })
 
+  it('finds a bare file name inside the project when cwd does not hold it', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'termflow-path-'))
+    cleanup.push(dir)
+    await mkdir(join(dir, 'src', 'ui'), { recursive: true })
+    await mkdir(join(dir, 'node_modules', 'x'), { recursive: true })
+    const file = join(dir, 'src', 'ui', 'Deep.tsx')
+    await writeFile(file, 'x')
+    await writeFile(join(dir, 'node_modules', 'x', 'Skip.tsx'), 'x')
+    expect(resolvePathCandidate('deep.tsx', dir)?.path).toBe(file)
+    expect(resolvePathCandidate('Skip.tsx', dir)).toBeNull()
+    expect(resolvePathCandidate('src/Nope.tsx', dir)).toBeNull()
+  })
+
   it('resolves a relative file against cwd', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'termflow-path-'))
     cleanup.push(dir)
