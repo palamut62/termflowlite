@@ -194,11 +194,11 @@ export function ProjectTree({ onNewWorktree }: { onNewWorktree: () => void }): R
     return next
   })
 
-  /** Projeye tiklaninca: sekme seridi projenin tum terminallerini gosterir; aktif sekme projede degilse en son bakilan acilir. */
+  /** Proje adina tiklaninca (acma/kapama yalniz ok ikonunda): sekme seridi projenin tum terminallerini gosterir; aktif sekme projede degilse en son bakilan acilir. */
   const openProject = (project: IdeProject): void => {
-    toggle(project.root)
     const ids = project.worktrees.flatMap((w) => w.sessions.map((s) => s.tabId))
-    if (ids.length === 0 || ids.includes(activeTabId ?? '')) return
+    if (ids.length === 0) { openProjectAt(project.root); return }
+    if (ids.includes(activeTabId ?? '')) return
     const last = lastUsedTab(ids, lastSeen)
     if (last) useTerminalStore.getState().setActiveTab(last)
   }
