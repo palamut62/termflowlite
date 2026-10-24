@@ -194,6 +194,15 @@ export function ProjectTree({ onNewWorktree }: { onNewWorktree: () => void }): R
     return next
   })
 
+  /** Projeye tiklaninca: sekme seridi projenin tum terminallerini gosterir; aktif sekme projede degilse en son bakilan acilir. */
+  const openProject = (project: IdeProject): void => {
+    toggle(project.root)
+    const ids = project.worktrees.flatMap((w) => w.sessions.map((s) => s.tabId))
+    if (ids.length === 0 || ids.includes(activeTabId ?? '')) return
+    const last = lastUsedTab(ids, lastSeen)
+    if (last) useTerminalStore.getState().setActiveTab(last)
+  }
+
   /** Worktree'ye tiklaninca: oturumu varsa ilkine gider, yoksa o klasorde yeni sekme acar. */
   const openWorktree = (worktree: IdeWorktree): void => {
     if (worktree.meta.sleeping) saveWorktreeMeta(worktree.path, { sleeping: undefined })
@@ -203,10 +212,10 @@ export function ProjectTree({ onNewWorktree }: { onNewWorktree: () => void }): R
     else openProjectAt(worktree.path)
   }
 
-  // Sekme -> worktree eslemesi: IDE sekme seridi yalniz etkin worktree'nin sekmelerini gosterir.
+  // Sekme -> proje eslemesi: IDE sekme seridi yalniz etkin projenin sekmelerini (tum worktree'ler) gosterir.
   useEffect(() => {
     const byTab = new Map<string, string>()
-    for (const project of tree) for (const worktree of project.worktrees) for (const session of worktree.sessions) byTab.set(session.tabId, worktree.path)
+    for (const project of tree) for (const worktree of project.worktrees) for (const session of worktree.sessions) byTab.set(session.tabId, project.root)
     const store = useWorkspaceScopeStore.getState()
     if (!scopeMapEquals(store.byTab, byTab)) store.set(byTab)
   }, [tree])
@@ -269,7 +278,7 @@ export function ProjectTree({ onNewWorktree }: { onNewWorktree: () => void }): R
         return (
           <div key={project.root} role="treeitem" aria-expanded={!isCollapsed} aria-label={project.label} className="ide-tree-project-wrap">
             <div className="ide-tree-project-row">
-              <button data-tree-row className="ide-tree-project" title={project.root} onClick={() => toggle(project.root)}>
+              <button data-tree-row className="ide-tree-project" title={project.root} onClick={() => openProject(project)}>
                 <span className="ide-avatar" style={{ background: avatarColor(project.label) }} aria-hidden="true">{project.label.slice(0, 1).toUpperCase()}</span>
                 <span className="ide-tree-label">{project.label}</span>
                 {isCollapsed && urgent && <StateIcon state={urgent} />}
