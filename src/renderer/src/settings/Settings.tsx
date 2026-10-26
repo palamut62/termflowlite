@@ -104,9 +104,12 @@ export function Settings(): React.JSX.Element {
         <header className="settings-header">
           {fullPage && <button className="settings-btn settings-back" onClick={closeSettings}><ArrowLeft size={14} /> Back to app</button>}
           <span className="settings-header-title">Settings</span>
-          <button className="settings-icon-btn" onClick={closeSettings} aria-label="Close settings" title="Close (Esc)">
-            <X size={16} />
-          </button>
+          {/* Tam sayfada "Back to app" zaten kapatiyor; ikinci bir X gereksiz. */}
+          {!fullPage && (
+            <button className="settings-icon-btn" onClick={closeSettings} aria-label="Close settings" title="Close (Esc)">
+              <X size={16} />
+            </button>
+          )}
         </header>
         <div className="settings-body">
           <nav className="settings-nav">

@@ -1,6 +1,6 @@
 # TermFlow Lite - Durum
 
-guncel: 2026-10-24
+guncel: 2026-10-26
 
 > Bu dosya projeye giren her yapay zeka aracinin ilk okudugu yerdir. Kisa tutulur (en fazla ~80 satir).
 > Kalici bilgi (mimari, kararlar, ayrintili gecmis) `PROJE-REHBER.md`'de (varsa) / README'de.
@@ -39,7 +39,10 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
 - Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Son oturum (2026-10-24, son arac: Claude Code, dal feature/agent-ide)
+## Son oturum (2026-10-26, son arac: Claude Code, dal feature/agent-ide)
+- Tam sayfa (IDE) Settings basliginda "Back to app" yaninda duran ikinci kapatma (X) kaldirildi; X artik yalniz modal (Lite) modunda. 1.27.1 iki surum derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle dogrulanmadi.
+
+## Onceki oturum (2026-10-24)
 - 1.27.1 etiketlendi (v1.27.1, CI yayinliyor; verify-release sonucu kontrol edilmeli). Sidebar: projeler kapali baslar, proje/worktree `...` menusu olculup ekran icinde tutulur (`ProjectTree.tsx`). Agent IDE yerelde derlendi + sessiz kuruldu.
 - Acik: kullanici 'Agent IDE'de yalniz secili projenin terminalleri gorunsun' istedi; sekme seridi + Agents paneli zaten worktree kapsamli, hangi yerde hepsi gorunuyor belirsiz (ekran goruntusu bekleniyor).
 - Telefon yeniden baglanmiyordu (PC kapaninca/internet gidince soket yari acik kaliyordu): istemciye uygulama seviyesi heartbeat (10 sn `ping` call, 25 sn sessizlikte dusur), 10 sn baglanti zaman asimi, uygulamaya donuste canlilik kontrolu; hub'a `ping` metodu. Test: `src/remote/src/client.test.ts`.
