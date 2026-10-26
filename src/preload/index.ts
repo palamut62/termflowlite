@@ -5,7 +5,7 @@ import type { RemoteCommandReply, RemoteCommandRequest, RemoteDeviceInfo, Remote
 import type { AgentHookEvent } from '../shared/agentHooks'
 import type { AgentUsage } from '../shared/usage'
 import type { AgentUpdateSnapshot } from '../shared/agentUpdate'
-import type { AgentEvent, AgentPermissionMode, AgentSession, AgentSessionRef, AppSettings, BackgroundPick, DelegatedTask, OrchestrationStatus, OrchestrationTarget, OrchestrationTestResult, ElevationStatus, MemoryAgent, MemoryConnection, MemoryProject, MemoryStatus, OpenRouterModelList, OpenRouterModelTest, PersistedSession, RenderMode, ShellInfo, SpeakResult, UpdateStatus, VoiceResult } from '../shared/types'
+import type { AgentEvent, AgentPermissionMode, AgentSession, AgentSessionRef, AppSettings, BackgroundPick, DelegatedTask, OrchestrationStatus, OrchestrationTarget, OrchestrationTestResult, ElevationStatus, MemoryAgent, MemoryConnection, MemoryProject, MemoryStatus, OpenRouterModelList, OpenRouterModelTest, PersistedSession, RenderMode, ShellInfo, SpeakResult, TabAttention, UpdateStatus, VoiceResult } from '../shared/types'
 
 // Windows OS build number (e.g. 26200 for current Win11). xterm's windowsPty
 // option keys its reflow behaviour on this; fall back to a modern build when
@@ -281,7 +281,11 @@ const api = {
   alerts: {
     pickSound: (): Promise<{ file: string } | { error: string } | null> => ipcRenderer.invoke(IPC.ALERTS_PICK_SOUND),
     loadSound: (file: string): Promise<Uint8Array | null> => ipcRenderer.invoke(IPC.ALERTS_LOAD_SOUND, file),
-    setBadge: (badge: AttentionBadge): void => ipcRenderer.send(IPC.WINDOW_ATTENTION, badge)
+    setBadge: (badge: AttentionBadge): void => ipcRenderer.send(IPC.WINDOW_ATTENTION, badge),
+    /** ntfy push to the phone; server and topic come from main-process settings. */
+    pushPhone: (event: { tabId: string; kind: TabAttention; title: string; body: string }): void => ipcRenderer.send(IPC.ALERTS_PHONE_PUSH, event),
+    /** Sends a test push; resolves to an error text or null. */
+    testPhonePush: (): Promise<string | null> => ipcRenderer.invoke(IPC.ALERTS_PHONE_PUSH_TEST)
   },
   scrollback: {
     save: (tabId: string, data: string): void => ipcRenderer.send(IPC.SCROLLBACK_SAVE, tabId, data),

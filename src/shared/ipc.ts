@@ -132,6 +132,8 @@ export const IPC = {
   /** agent-attention: ozel ses sec / baytlarini al, gorev cubugu rozeti. */
   ALERTS_PICK_SOUND: 'alerts:pick-sound',
   ALERTS_LOAD_SOUND: 'alerts:load-sound',
+  ALERTS_PHONE_PUSH: 'alerts:phone-push',
+  ALERTS_PHONE_PUSH_TEST: 'alerts:phone-push-test',
   WINDOW_ATTENTION: 'window:attention',
   DIALOG_PICK_THEME: 'dialog:pick-theme',
   /** scrollback-restore */

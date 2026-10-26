@@ -4,6 +4,7 @@ import { normalizeAsciiBackgrounds } from '../../shared/asciiBackground'
 import { DEFAULT_SETTINGS, MEMORY_INTERVAL_MS, type AppSettings, type WorktreeMeta } from '../../shared/types'
 import { normalizeSetupSteps } from '../../shared/worktreeSetup'
 import { EDITION } from '../../shared/edition'
+import { PUSH_TOPIC, newPushTopic, normalizePushServer } from '../remote/phonePush'
 
 const WRITE_DEBOUNCE_MS = 300
 
@@ -43,7 +44,16 @@ function normalizeRemoteSettings(value: unknown): AppSettings['remote'] {
   const port = typeof input.port === 'number' && Number.isInteger(input.port) && input.port >= 1024 && input.port <= 65535
     ? input.port
     : DEFAULT_SETTINGS.remote.port
-  return { enabled: input.enabled === true, port }
+  return { enabled: input.enabled === true, port, push: normalizePhonePush(input.push) }
+}
+function normalizePhonePush(value: unknown): AppSettings['remote']['push'] {
+  const input = value && typeof value === 'object' ? value as Partial<AppSettings['remote']['push']> : {}
+  const enabled = input.enabled === true
+  const server = normalizePushServer(input.server) ?? DEFAULT_SETTINGS.remote.push.server
+  const valid = typeof input.topic === 'string' && PUSH_TOPIC.test(input.topic)
+  // Topic is made when push is turned on (or cleared for a new one) and then kept, so the phone stays subscribed.
+  const topic = valid ? input.topic as string : enabled ? newPushTopic() : ''
+  return { enabled, server, topic }
 }
 function normalizeVoiceSettings(value: unknown): AppSettings['voice'] {
   const input = value && typeof value === 'object' ? value as Partial<AppSettings['voice']> : {}

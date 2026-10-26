@@ -21,13 +21,16 @@ const NAV: { id: Screen; label: string; icon: React.JSX.Element }[] = [
   { id: 'project', label: 'Project', icon: <FolderGit2 size={20} /> }
 ]
 
-/** Reads a one-time code from #pair=..., removing it from the address bar right away. */
-function takePairCode(): string | null {
-  const match = /(?:^#|&)pair=([A-Za-z0-9_-]{6,100})/.exec(location.hash)
+/** Reads a one-time #name=value, removing it from the address bar right away. */
+function takeHashValue(name: 'pair' | 'tab', pattern: RegExp): string | null {
+  const match = new RegExp(`(?:^#|&)${name}=(${pattern.source})`).exec(location.hash)
   if (!match) return null
   history.replaceState(null, '', location.pathname)
   return match[1]
 }
+const takePairCode = (): string | null => takeHashValue('pair', /[A-Za-z0-9_-]{6,100}/)
+/** #tab=<id>: the iPhone app opens a tab from a tapped phone notification. */
+const takeTabLink = (): string | null => takeHashValue('tab', /[A-Za-z0-9_-]{1,100}/)
 
 function PairScreen({ error, busy, onCode }: { error: string | null; busy: boolean; onCode(code: string): void }): React.JSX.Element {
   const [code, setCode] = useState('')
@@ -171,6 +174,16 @@ export function App(): React.JSX.Element {
     window.addEventListener('hashchange', tryPair)
     return () => window.removeEventListener('hashchange', tryPair)
   }, [pairCode])
+
+  useEffect(() => {
+    const openLinkedTab = (): void => {
+      const tabId = takeTabLink()
+      if (tabId) useRemote.getState().setCurrentTab(tabId)
+    }
+    openLinkedTab()
+    window.addEventListener('hashchange', openLinkedTab)
+    return () => window.removeEventListener('hashchange', openLinkedTab)
+  }, [])
 
   useEffect(() => {
     if (!token) return

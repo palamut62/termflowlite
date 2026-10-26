@@ -39,19 +39,18 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
 - Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Son oturum (2026-10-26, son arac: Claude Code, dal feature/agent-ide)
+## Son oturum (2026-10-26 aksam, son arac: Claude Code, dal feature/phone-push)
+- iPhone uygulamasi: `../termflow-lite-ios` (xtool, SwiftUI + WKWebView kabugu, QR/adres ile kurulum, kalici localStorage). Derlendi, telefona henuz kurulmadi.
+- Telefon bildirimi (remote-attention Faz B, ntfy): Ayarlar > Remote > Phone notifications; `termflow://tab/<id>` ile sekmeye gider. verify yesil (891 test). Yayinlanmadi, surum artmadi, paketlenip kurulmadi.
+
+## Onceki oturum (2026-10-26, dal feature/agent-ide)
 - Tam sayfa (IDE) Settings basliginda "Back to app" yaninda duran ikinci kapatma (X) kaldirildi; X artik yalniz modal (Lite) modunda. 1.27.1 iki surum derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle dogrulanmadi.
 - Secimin uzerine yazma TUI'lerde duzeltildi: `drawnCaret` artik gorunur ekranin tamamini tariyor ve birden fazla inverse hucrede vazgecmiyor (`pickDrawnCaret`, tek karakterlik inverse dizileri aday, secime en yakini secilir). Canli olcumle dogrulandi; 6 birim test eklendi.
 - Teshis notu: Claude Code fare raporlama ACMIYOR (`?1000/1002/1006` yok), imleci gizliyor (`?25l`) - sorun fare modu degil caret bulmaydi. Kalan sinir: cok satirli prompt kutusunda caret secimin fiziksel satirinda degilse `planSelectionEdit` hala reddediyor (ok sayisi kutu cercevesi yuzunden yanlis cikardi).
 
-## Onceki oturum (2026-10-24)
-- 1.27.1 etiketlendi (v1.27.1, CI yayinliyor; verify-release sonucu kontrol edilmeli). Sidebar: projeler kapali baslar, proje/worktree `...` menusu olculup ekran icinde tutulur (`ProjectTree.tsx`). Agent IDE yerelde derlendi + sessiz kuruldu.
-- Acik: kullanici 'Agent IDE'de yalniz secili projenin terminalleri gorunsun' istedi; sekme seridi + Agents paneli zaten worktree kapsamli, hangi yerde hepsi gorunuyor belirsiz (ekran goruntusu bekleniyor).
-- Telefon yeniden baglanmiyordu (PC kapaninca/internet gidince soket yari acik kaliyordu): istemciye uygulama seviyesi heartbeat (10 sn `ping` call, 25 sn sessizlikte dusur), 10 sn baglanti zaman asimi, uygulamaya donuste canlilik kontrolu; hub'a `ping` metodu. Test: `src/remote/src/client.test.ts`.
-- Telefonda Ayarlar duzenleme (Profiles/Providers/SSH sheet'leri): inputlar 16px (iOS zoom), sheet visualViewport'a sabit (`--vv-top`), odaklanan alan klavye acilinca ortalanir, arka plana yanlis dokunus sheet'i kapatmaz.
-- Gercek telefonla denenmedi. Sessiz kurulum oturumu oldurdu (exit 137, kurulum calisan TermFlow'u kapatiyor); kurulum elle yapilmali.
 
 ## Yarim kalan / siradaki adim
+- **Telefon bildirimi + iOS uygulamasi (2026-10-26):** gercek iPhone + ntfy uygulamasiyla dene (Send test, bildirime dokununca dogru sekme). Sonra surum + CHANGELOG + yayin karari. Detay `docs/orca-parity/remote-attention.md`
 - **Telefondan dosya yukleme (2026-10-23, commitlendi, yayinlanmadi):** kod + birim test tamam (`remote/uploads.ts`, `POST /api/upload`, key bar ataç butonu; `docs/remote-access.md`). Gercek telefonla denenmedi; paketlenip kurulmadi (yeni ozellik: surum artar, CI yayinlar)
 - **Orchestration (IDE):** kod tamam, kurulu; varsayilan KAPALI. Gercek koordinatorden deneme kullanicida: Ayarlar > Orchestration > Enable + Connect (Claude/Codex/OpenCode MCP kaydi). Linux elle denenmedi; `opencode serve --attach` paralelligi olculmedi. Site bolumu yok
 - IDE yayin reposu acildi: PUBLIC `palamut62/termflow-agent-ide` (README + LICENSE). CI'da `release-ide-*` isleri ona yukler; `RELEASES_TOKEN` (fine-grained) bu repoya da Contents: write almali, kullanici token'a repoyu eklemeli, yoksa IDE isleri 403. IDE updater acildi, `.deb`/updater adi `termflow-agent-ide` (extraMetadata). IDE notlari `CHANGELOG-IDE.md`

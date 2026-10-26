@@ -552,6 +552,16 @@ export interface RemoteSettings {
   enabled: boolean
   /** TCP port on the Tailscale address. */
   port: number
+  /** Agent alerts pushed to the phone through ntfy, also when TermFlow Remote is closed. */
+  push: PhonePushSettings
+}
+
+export interface PhonePushSettings {
+  enabled: boolean
+  /** ntfy server, e.g. https://ntfy.sh or a self-hosted one. */
+  server: string
+  /** Secret topic; generated when push is turned on. */
+  topic: string
 }
 
 /** Hafiza ne siklikla yeni session arar (yeni session yoksa model cagrilmaz). */
@@ -896,7 +906,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   weatherPlace: null,
   asciiBackgrounds: {},
   memory: { enabled: false, updateEvery: 'hourly', model: 'deepseek/deepseek-v4-flash', excludedProjects: [] },
-  remote: { enabled: false, port: 47321 },
+  remote: { enabled: false, port: 47321, push: { enabled: false, server: 'https://ntfy.sh', topic: '' } },
   voice: { enabled: false, model: 'google/gemini-2.5-flash-lite', holdMs: 400, cleanup: true, language: 'auto', speak: { enabled: false, model: 'antalia', speed: 1, studioDir: '' } },
   // Dilim 0 olcumunde en hizli gecen ucretsiz model; listede yoksa kullanici secer.
   orchestration: { enabled: false, maxConcurrent: 2, timeoutMinutes: 10, claudeThreshold: 70, targets: { opencode: { enabled: true, model: 'opencode/deepseek-v4.1-flash-free' } } },
