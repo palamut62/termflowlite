@@ -94,6 +94,59 @@ function producesText(e: KeyboardEvent): boolean {
   return true
 }
 
+/** Ters renkli (inverse) hücreleri okuyan ızgara; birim testte sahte verilir. */
+export interface InverseGrid {
+  cols: number
+  /** Hücre ters renkli mi (TUI'nin çizdiği caret böyle görünür). */
+  isInverse(row: number, col: number): boolean
+  /** Hücre genişliği; geniş karakterin devam hücresi 0. */
+  width(row: number, col: number): number
+}
+
+/**
+ * TUI'nin çizdiği caret'i bulur: `top`-`bottom` satırlarındaki ters renkli
+ * hücrelerden TEK KARAKTERLİK olanlar aday sayılır ve seçim sonuna en yakını
+ * seçilir.
+ *
+ * İki ayıklama kuralı:
+ * - Caret tek karakterdir; arka arkaya gelen 2+ hücrelik inverse dizi (durum
+ *   çubuğu, vurgulu menü satırı, ters renkli etiket) caret değildir. Geniş
+ *   karakter caret'i iki hücre kaplar ama ikincisinin genişliği 0'dır.
+ * - Birden çok aday kalırsa vazgeçilmez: seçime en yakın olan alınır, çünkü
+ *   kullanıcının düzenlediği giriş kutusu seçimin yanındadır.
+ */
+export function pickDrawnCaret(
+  grid: InverseGrid,
+  top: number,
+  bottom: number,
+  selectionEnd: CellPos
+): CellPos | null {
+  let best: CellPos | null = null
+  let bestDist = Infinity
+  for (let y = top; y <= bottom; y++) {
+    let x = 0
+    while (x < grid.cols) {
+      if (!grid.isInverse(y, x)) {
+        x++
+        continue
+      }
+      let end = x + 1
+      while (end < grid.cols && grid.isInverse(y, end)) end++
+      // Tek karakter mi: bir hücre, ya da iki hücre + devamı geniş karakter.
+      const single = end - x === 1 || (end - x === 2 && grid.width(y, x + 1) === 0)
+      if (single) {
+        const dist = Math.abs((y - selectionEnd.y) * grid.cols + (x - selectionEnd.x))
+        if (dist < bestDist) {
+          bestDist = dist
+          best = { x, y }
+        }
+      }
+      x = end
+    }
+  }
+  return best
+}
+
 /**
  * Çift tıkla seçilen kelimenin (ya da tüm inputun) üzerine yazma: yazılan
  * karakterden önce imleç oklarla seçim sonuna götürülür ve seçim backspace ile
@@ -101,8 +154,9 @@ function producesText(e: KeyboardEvent): boolean {
  *
  * İmleç: gerçek terminal imleci görünürse o (shell, Codex). Claude Code gibi
  * TUI'ler gerçek imleci gizleyip başka satıra park eder ve caret'i ters renkli
- * (inverse) bir hücre olarak çizer; imleç gizliyken seçimin satırlarındaki tek
- * inverse hücre caret sayılır.
+ * (inverse) bir hücre olarak çizer; imleç gizliyken caret `pickDrawnCaret` ile
+ * görünür ekranda aranır (çok satırlı prompt kutusunda caret seçimin satırında
+ * olmayabilir).
  */
 export class SelectionEdit implements IDisposable {
   private cursorHidden = false
@@ -137,7 +191,7 @@ export class SelectionEdit implements IDisposable {
       isWrapped: (row) => buffer.getLine(row)?.isWrapped ?? false
     }
     const caret = this.cursorHidden
-      ? this.drawnCaret(range.start.y, range.end.y)
+      ? this.drawnCaret(range.end)
       : { x: buffer.cursorX, y: buffer.baseY + buffer.cursorY }
     if (!caret) return false
     const plan = planSelectionEdit(grid, range.start, range.end, caret)
@@ -150,22 +204,17 @@ export class SelectionEdit implements IDisposable {
     return isDelete
   }
 
-  /** Seçimin ekrandaki satırlarında tam bir inverse hücre varsa onun konumu. */
-  private drawnCaret(fromRow: number, toRow: number): CellPos | null {
+  /** Görünür ekrandaki caret; seçim sonuna en yakın tek karakterlik inverse hücre. */
+  private drawnCaret(selectionEnd: CellPos): CellPos | null {
     const buffer = this.term.buffer.active
-    const top = Math.max(fromRow, buffer.viewportY)
-    const bottom = Math.min(toRow, buffer.viewportY + this.term.rows - 1)
-    let found: CellPos | null = null
-    for (let y = top; y <= bottom; y++) {
-      const line = buffer.getLine(y)
-      if (!line) continue
-      for (let x = 0; x < this.term.cols; x++) {
-        if (!line.getCell(x)?.isInverse()) continue
-        if (found) return null
-        found = { x, y }
-      }
+    const grid: InverseGrid = {
+      cols: this.term.cols,
+      // xterm'de isInverse() boolean değil sayı döner; truthy kontrol şart.
+      isInverse: (row, col) => Boolean(buffer.getLine(row)?.getCell(col)?.isInverse()),
+      width: (row, col) => buffer.getLine(row)?.getCell(col)?.getWidth() ?? 1
     }
-    return found
+    const top = buffer.viewportY
+    return pickDrawnCaret(grid, top, top + this.term.rows - 1, selectionEnd)
   }
 
   dispose(): void {

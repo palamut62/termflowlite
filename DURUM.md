@@ -41,6 +41,8 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 
 ## Son oturum (2026-10-26, son arac: Claude Code, dal feature/agent-ide)
 - Tam sayfa (IDE) Settings basliginda "Back to app" yaninda duran ikinci kapatma (X) kaldirildi; X artik yalniz modal (Lite) modunda. 1.27.1 iki surum derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle dogrulanmadi.
+- Secimin uzerine yazma TUI'lerde duzeltildi: `drawnCaret` artik gorunur ekranin tamamini tariyor ve birden fazla inverse hucrede vazgecmiyor (`pickDrawnCaret`, tek karakterlik inverse dizileri aday, secime en yakini secilir). Canli olcumle dogrulandi; 6 birim test eklendi.
+- Teshis notu: Claude Code fare raporlama ACMIYOR (`?1000/1002/1006` yok), imleci gizliyor (`?25l`) - sorun fare modu degil caret bulmaydi. Kalan sinir: cok satirli prompt kutusunda caret secimin fiziksel satirinda degilse `planSelectionEdit` hala reddediyor (ok sayisi kutu cercevesi yuzunden yanlis cikardi).
 
 ## Onceki oturum (2026-10-24)
 - 1.27.1 etiketlendi (v1.27.1, CI yayinliyor; verify-release sonucu kontrol edilmeli). Sidebar: projeler kapali baslar, proje/worktree `...` menusu olculup ekran icinde tutulur (`ProjectTree.tsx`). Agent IDE yerelde derlendi + sessiz kuruldu.
