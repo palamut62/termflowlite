@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Camera, FolderGit2, House, QrCode, Settings as SettingsIcon, SquareTerminal, WifiOff } from 'lucide-react'
 import { isLightColor } from '../../renderer/src/backdrop'
 import { resolveTheme } from '../../renderer/src/themes/themes'
+import { agentForProfile } from '../../shared/profiles'
 import { RemoteClient, loadToken, pairWithCode, saveToken } from './client'
 import { HAPTIC_GAP_MS, finishedHaptic, hasNative, postNative, type ActivitySeen } from './native'
 import { extractPairCode, readQrFromPhoto } from './qr'
@@ -131,7 +132,7 @@ function useViewportHeight(): void {
 
 /**
  * iPhone app only: keep the screen on while an agent works, a haptic tap when one finishes or
- * needs you (while you look at the app).
+ * needs you (while you look at the app), and the tab summary for the widget and Live Activity.
  */
 function useNativeSignals(): void {
   const tabs = useRemote((s) => s.tabs)
@@ -152,6 +153,14 @@ function useNativeSignals(): void {
     lastHaptic.current = now
     postNative({ type: 'haptic', kind: result.kind })
   }, [tabs])
+
+  const computer = useRemote((s) => s.computer)
+  const settings = useRemote((s) => s.settings)
+  useEffect(() => {
+    if (!hasNative() || connection !== 'online' || !settings) return
+    const agentOf = (profileId: string): boolean => agentForProfile(settings, profileId) !== null
+    postNative({ type: 'status', computer, tabs: tabs.map(({ id, title, activity, profileId }) => ({ id, title, activity, agent: agentOf(profileId) })) })
+  }, [tabs, computer, connection, settings])
 }
 
 /** The phone chrome takes the light/dark tone of the desktop terminal theme. */

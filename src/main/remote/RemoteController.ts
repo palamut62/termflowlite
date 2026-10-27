@@ -3,6 +3,7 @@ import { homedir, hostname } from 'os'
 import QRCode from 'qrcode'
 import type { AppSettings, ShellInfo } from '../../shared/types'
 import type { RemoteCommandReply, RemoteDeviceInfo, RemotePairing, RemoteStatus, RemoteTabCommand, RemoteTabsState } from '../../shared/remote'
+import { agentForProfile } from '../../shared/profiles'
 import { DeviceStore, formatPairingCode } from './devices'
 import { PushActionTokens, buildPushActions, type PushAction } from './phonePush'
 import { RemoteHub, type RemoteHubDeps, type RemoteTerminals } from './RemoteHub'
@@ -79,7 +80,17 @@ export class RemoteController {
         this.lastPairedAt = Date.now()
         this.publish()
       },
-      onPushAction: (token) => this.runPushAction(token)
+      onPushAction: (token) => this.runPushAction(token),
+      status: () => {
+        const settings = deps.getSettings()
+        return { computer: hostname(), tabs: this.tabs.tabs.map(({ id, title, activity, profileId }) => ({ id, title, activity, agent: agentForProfile(settings, profileId) !== null })) }
+      },
+      typeText: (text) => {
+        const tabId = this.tabs.activeTabId
+        if (!tabId) return false
+        this.deps.terminals.write(tabId, text)
+        return true
+      }
     })
   }
 

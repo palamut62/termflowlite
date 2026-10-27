@@ -16,6 +16,7 @@ let devices: DeviceStore
 let port: number
 let base: string
 const writes: string[] = []
+const typed: string[] = []
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'tfl-remote-srv-'))
@@ -39,7 +40,10 @@ beforeAll(async () => {
     home: '/home/me'
   })
   hub.setTabs({ tabs: [{ id: 'tab1', title: 'pwsh', profileId: 'pwsh', running: true, activity: 'running', visible: true }], activeTabId: 'tab1' })
-  server = new RemoteServer({ staticDir: web, uploadDir: join(dir, 'uploads'), hub, devices, onPaired: () => undefined, onPushAction: (token) => token === 'good' })
+  server = new RemoteServer({ staticDir: web, uploadDir: join(dir, 'uploads'), hub, devices, onPaired: () => undefined, onPushAction: (token) => token === 'good',
+    status: () => ({ computer: 'pc', tabs: [{ id: 'tab1', title: 'pwsh', activity: 'waiting', agent: false }] }),
+    typeText: (text) => { typed.push(text); return true }
+  })
   port = 40000 + Math.floor(Math.random() * 20000)
   await server.start(HOST, port)
   base = `http://${HOST}:${port}`
@@ -140,6 +144,19 @@ describe('host and origin checks', () => {
     expect(sameOrigin('http://100.89.62.116:47321', '100.89.62.116:47321')).toBe(true)
     expect(sameOrigin('http://evil.example', '100.89.62.116:47321')).toBe(false)
     expect(sameOrigin(undefined, '100.89.62.116:47321')).toBe(false)
+  })
+
+  it('serves the iPhone widget status and types shared text, only for a paired device key', async () => {
+    const { code } = devices.startPairing()
+    const { token } = await (await pair(code)).json() as { token: string }
+    const status = (key: string): Promise<Response> => fetch(`${base}/api/status`, { headers: { Authorization: `Bearer ${key}` } })
+    const type = (key: string, body: string): Promise<Response> => fetch(`${base}/api/type`, { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body })
+    expect((await status('nope')).status).toBe(401)
+    expect(await (await status(token)).json()).toEqual({ computer: 'pc', tabs: [{ id: 'tab1', title: 'pwsh', activity: 'waiting', agent: false }] })
+    expect((await type('nope', '{"text":"x"}')).status).toBe(401)
+    expect((await type(token, '{"text":"   "}')).status).toBe(400)
+    expect((await type(token, '{"text":"see https://x.dev\\r\\nrm -rf /\\u001b[201~\\u0003"}')).status).toBe(200)
+    expect(typed).toEqual(['see https://x.dev rm -rf / [201~ '])
   })
 
   it('answers ntfy push buttons by their one-time token, without an Origin', async () => {

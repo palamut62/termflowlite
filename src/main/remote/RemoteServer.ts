@@ -3,7 +3,7 @@ import { readFile, stat } from 'fs/promises'
 import { extname, join, normalize, sep } from 'path'
 import { gzipSync } from 'zlib'
 import { WebSocketServer, type WebSocket } from 'ws'
-import { MAX_CLIENT_MESSAGE_BYTES } from '../../shared/remote'
+import { MAX_CLIENT_MESSAGE_BYTES, type RemoteTab } from '../../shared/remote'
 import type { DeviceStore } from './devices'
 import type { RemoteConnection, RemoteHub } from './RemoteHub'
 import { MAX_UPLOAD_BYTES, saveUpload } from './uploads'
@@ -117,6 +117,21 @@ export interface RemoteServerOptions {
   onPaired(deviceId: string, renewed: boolean): void
   /** An Approve / Reject button of a phone push was tapped; false when the token is not valid (any more). */
   onPushAction?(token: unknown): boolean
+  /** Tab summary for the iPhone widget and Live Activity (`GET /api/status`). */
+  status?(): RemoteStatusSummary
+  /** Text from the iPhone share sheet for the desktop's active tab, never with Enter (`POST /api/type`). */
+  typeText?(text: string): boolean
+}
+
+export interface RemoteStatusSummary {
+  computer: string
+  /** agent: a CLI agent tab (an idle shell also reports 'waiting', which is not worth a ping). */
+  tabs: { id: string; title: string; activity: RemoteTab['activity']; agent: boolean }[]
+}
+
+/** Shared text is typed, not run: control characters (Enter, Esc, Ctrl-C...) become spaces. */
+export function typeableText(text: string): string {
+  return text.replace(/[\x00-\x1f\x7f]+/g, ' ')
 }
 
 /**
@@ -233,6 +248,10 @@ export class RemoteServer {
       await this.handlePushAction(req, res)
       return
     }
+    if (url.pathname === '/api/status' || url.pathname === '/api/type') {
+      await this.handleAppApi(url.pathname, req, res)
+      return
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405).end()
       return
@@ -278,6 +297,33 @@ export class RemoteServer {
       return json(400, { error: 'Invalid request' })
     }
     if (!this.options.onPushAction?.(body?.token)) return json(410, { error: 'This button has expired or was already used.' })
+    json(200, { ok: true })
+  }
+
+  /**
+   * For the iPhone widget and share extension (native code, not the page): the paired device key in
+   * `Authorization` is the credential. A browser never sends it on its own, so no Origin check.
+   */
+  private async handleAppApi(path: string, req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const json = (status: number, body: object): void => {
+      res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(JSON.stringify(body))
+    }
+    const token = /^Bearer (.+)$/.exec(String(req.headers.authorization ?? ''))?.[1]
+    if (!this.options.devices.authenticate(token)) return json(401, { error: 'This phone is not paired.' })
+    if (path === '/api/status') {
+      if (req.method !== 'GET') return json(405, { error: 'Method not allowed' })
+      return json(200, this.options.status?.() ?? { computer: '', tabs: [] })
+    }
+    if (req.method !== 'POST') return json(405, { error: 'Method not allowed' })
+    let body: { text?: unknown }
+    try {
+      body = JSON.parse(await readBody(req, 32 * 1024)) as typeof body
+    } catch {
+      return json(400, { error: 'Invalid request' })
+    }
+    if (typeof body?.text !== 'string' || !body.text.trim()) return json(400, { error: 'Nothing to type.' })
+    if (!this.options.typeText?.(typeableText(body.text))) return json(409, { error: 'No tab is open on the computer.' })
     json(200, { ok: true })
   }
 

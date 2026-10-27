@@ -42,6 +42,7 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 ## Son oturum (2026-10-27, son arac: Claude Code, dal feature/phone-push)
 - ntfy "needs you" bildirimine Approve (Enter) / Reject (Esc) butonlari: tek kullanimlik token, `POST /api/push-action` (`phonePush.ts PushActionTokens`, `RemoteController.pushActions`). Spec `docs/orca-parity/remote-attention.md` sonu.
 - Telefon istemcisi: iPhone uygulamasi koprusu `src/remote/src/native.ts` (pano, ekran acik, haptik, basili tut-konus, Face ID, bilgisayarlar), Quick prompts, Copy text, Project > Review changes (`scm:diff` izin listesinde). `docs/remote-access.md` sonu. iOS tarafi `../termflow-lite-ios` (commit b764c6b).
+- iPhone widget/Live Activity/paylasim icin `GET /api/status` + `POST /api/type` (Enter'siz, kontrol karakterleri temiz), sayfadan `status` mesaji; `agentForProfile` artik Pick<> aliyor. iOS ca2dfdd.
 - verify yesil. Yayinlanmadi, surum artmadi. Gercek iPhone + ntfy ile denenmedi.
 
 ## Onceki oturum (2026-10-26 aksam, dal feature/phone-push)

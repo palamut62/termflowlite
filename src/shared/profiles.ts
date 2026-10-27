@@ -32,13 +32,13 @@ export function commandWithModel(command: string | undefined, model: string | un
   return `${base} --model ${selected}`
 }
 
-export function providerFromProfileId(settings: AppSettings, profileId: string): ProviderProfile | undefined {
+export function providerFromProfileId(settings: Pick<AppSettings, 'providerProfiles'>, profileId: string): ProviderProfile | undefined {
   if (!profileId.startsWith('provider:')) return undefined
   return settings.providerProfiles.find((provider) => provider.id === profileId.slice('provider:'.length))
 }
 
 /** Bir profil/provider'ın çalıştırdığı native CLI ajanını tek yerde çözer. */
-export function agentForProfile(settings: AppSettings, profileId: string): AgentKind | null {
+export function agentForProfile(settings: Pick<AppSettings, 'providerProfiles' | 'profiles'>, profileId: string): AgentKind | null {
   const provider = providerFromProfileId(settings, profileId)
   if (provider) return agentKindForCommand(provider.command)
   const profile = mergeProfiles(settings.profiles).find((item) => item.id === profileId)

@@ -23,6 +23,8 @@ export type NativeMessage =
   | { type: 'dictate'; on: boolean }
   | { type: 'lock'; on: boolean }
   | { type: 'computers' }
+  /** Tab summary for the widget and Live Activity while the app is open. */
+  | { type: 'status'; computer: string; tabs: { id: string; title: string; activity: TabActivity; agent: boolean }[] }
 
 /** Sent by the iPhone app through `window.termflowNative.receive`. */
 export type NativeEvent =

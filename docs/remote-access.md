@@ -105,3 +105,7 @@ Metotlar: `ipc` (izin listeli kanal), `tab.open|close|rename|focus|restart`,
   `/api/upload`'a kendisinin gondermesi icin.
 - Telefon istemcisinde herkes icin: Quick prompts (Zap tusu, telefonda saklanan hazir promptlar), sekme menusu > Copy text
   (son 300 satir secilebilir metin), Project > Review changes (`scm:diff` izin listesine eklendi, salt okunur).
+- iPhone widget / Live Activity / paylasim extension'i icin native API (cihaz anahtari `Authorization: Bearer`, Origin gerekmez:
+  tarayici anahtari kendiliginden gondermez): `GET /api/status` -> `{computer, tabs[{id,title,activity,agent}]}`;
+  `POST /api/type {text}` -> masaustundeki aktif sekmeye yazar, ENTER YOK, kontrol karakterleri (Enter/Esc/^C...) bosluga
+  cevrilir (`typeableText`), 32 KB sinir. Sayfa da uygulamaya `status` mesaji gonderir (uygulama acikken widget/Live Activity).
