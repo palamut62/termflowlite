@@ -51,6 +51,8 @@ function PhonePushSettings(): React.JSX.Element {
         even when TermFlow Remote is closed. Install the free ntfy app, subscribe to the topic below on the same server;
         tapping a notification opens that tab in the TermFlow iPhone app. Only the alert title and tab name are sent, never
         terminal output. On a public server anyone who knows the topic can read these alerts, so keep it private.
+        "Needs you" alerts carry Approve (Enter) and Reject (Esc) buttons while Remote Access is on; each button works once,
+        for 10 minutes, and only from your Tailscale network.
       </p>
       <Field label="Enable phone notifications">
         <Toggle checked={push.enabled} label="Enable phone notifications" onChange={(on) => void save({ enabled: on })} />

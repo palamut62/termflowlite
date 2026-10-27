@@ -53,3 +53,12 @@ Remote sunucu bugun `http://100.x.y.z` uzerinden calisiyor (Tailscale WireGuard 
 - Kod: `src/main/remote/phonePush.ts` (+test), `ipc/alerts.ts` (ALERTS_PHONE_PUSH, _TEST), `attention/alerts.ts`,
   `settings/RemoteSettings.tsx`, `src/remote/src/App.tsx`.
 - Sinir: kendi ntfy sunucusunda iOS aninda bildirim icin sunucuda `upstream-base-url: https://ntfy.sh` gerekir.
+
+## Bildirimden onay (2026-10-27, dal `feature/phone-push`, yayinlanmadi)
+- "needs-input" bildirimi Remote Access calisirken iki ntfy `http` aksiyonu tasir: Approve (Enter) / Reject (Esc).
+  ntfy iOS uygulamasi butona basinca `POST http://<100.x>:<port>/api/push-action {token}` yapar (uygulama acilmaz).
+- Kimlik: cihaz anahtari ntfy'a GITMEZ. Her bildirime iki tek kullanimlik 24 baytlik token (`PushActionTokens`):
+  biri kullanilinca digeri yanar, ayni sekmeye yeni bildirim eskileri gecersiz kilar, 10 dk omur, sekme kapaliysa 410.
+  Endpoint Origin istemez (ntfy uygulamasi tarayici degil), IP basina dakikada 10 deneme. Sunucu yalniz Tailscale IP'sinde.
+- Sinir: iOS ntfy `clear:true`'yu http aksiyonlarinda yok sayar (bildirim ekranda kalir). Enter/Esc Claude Code ve Codex
+  izin isteminde varsayilan secenegi onaylar/reddeder; baska bir istemde ayni tuslar gider.

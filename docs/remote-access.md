@@ -92,3 +92,16 @@ Metotlar: `ipc` (izin listeli kanal), `tab.open|close|rename|focus|restart`,
   karakteri, Windows ozel adlari).
 - Basarili yuklemede dosya yolu (bosluk varsa tirnakli) aktif sekmeye yazilir; ajan dosyayi bu yoldan okur. Enter gonderilmez.
 - Kapsam disi: yuklemeden ilerleme cubugu, kesilen yuklemeyi surdurme, PC'den telefona indirme.
+
+## iPhone uygulamasi koprusu (2026-10-27)
+- TermFlow iPhone uygulamasi (`../termflow-lite-ios`, WKWebView) `window.webkit.messageHandlers.termflow` saglar; telefon
+  istemcisi `src/remote/src/native.ts` ile kullanir, duz tarayicida hepsi devre disi. Uygulama yalniz kayitli sunucu kokenindeki
+  ana cerceveden mesaj kabul eder.
+- Sayfa -> uygulama: copy, paste (iPhone panosu), awake (bir sekme `running` iken ekran kapanmaz), haptic (en az 5 sn calisan
+  sekme durunca / girdi isteyince, 4 sn aralik), dictate (mikrofon tusu basili tut: Apple konusma tanima, metin mesaj kutusuna),
+  lock (Face ID kilidi; acip kapatmak da kimlik ister), computers (kayitli bilgisayarlar arasinda gecis).
+- Uygulama -> sayfa (`window.termflowNative.receive`): text (Kisayol `termflow://send?text=..&enter=0`, yapistirma, paylasilan
+  dosya yolu), dictation, info (kilit, biyometri, imza bitis tarihi), notice. `token()` paylasilan dosyayi uygulamanin
+  `/api/upload`'a kendisinin gondermesi icin.
+- Telefon istemcisinde herkes icin: Quick prompts (Zap tusu, telefonda saklanan hazir promptlar), sekme menusu > Copy text
+  (son 300 satir secilebilir metin), Project > Review changes (`scm:diff` izin listesine eklendi, salt okunur).

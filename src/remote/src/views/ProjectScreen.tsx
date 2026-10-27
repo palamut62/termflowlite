@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowUp, ChevronRight, File, Folder, FolderGit2, GitBranch, GitPullRequest, Play, RefreshCw, SquareTerminal } from 'lucide-react'
+import { ArrowUp, ChevronRight, File, FileDiff, Folder, FolderGit2, GitBranch, GitPullRequest, Play, RefreshCw, SquareTerminal } from 'lucide-react'
 import type { DirListing, GitHubPullRequest, GitHubStatus, GitRepoInfo, GitStatus, ProjectInfo, ProjectTask, WorktreeEntry } from '../../../shared/ipc'
 import { client, errorText, useRemote } from '../store'
 import { Empty, Group, Row, Sheet, timeAgo } from '../ui'
 import { NewTabSheet } from './NewTabSheet'
+import { ChangesSheet } from './ChangesSheet'
 
 const baseName = (path: string): string => path.split(/[\\/]/).filter(Boolean).pop() ?? path
 
@@ -43,6 +44,7 @@ export function ProjectScreen(): React.JSX.Element {
   const [newTab, setNewTab] = useState<{ cwd: string; command?: string } | null>(null)
   const [browse, setBrowse] = useState<string | null>(null)
   const [prs, setPrs] = useState<{ repo: string; list: GitHubPullRequest[] } | null>(null)
+  const [changes, setChanges] = useState(false)
 
   useEffect(() => {
     if (!folder && folders[0]) setFolder(folders[0])
@@ -126,6 +128,7 @@ export function ProjectScreen(): React.JSX.Element {
 
       <Group>
         <Row label={<><GitBranch size={14} /> {overview?.git?.branch ?? (loading ? 'Loading...' : 'Not a git repository')}</>} hint={overview?.git ? `${overview.git.changedFiles} changed file${overview.git.changedFiles === 1 ? '' : 's'}` : undefined} />
+        {overview?.git && overview.git.changedFiles > 0 && <Row label={<><FileDiff size={14} /> Review changes</>} onClick={() => setChanges(true)}><ChevronRight size={16} /></Row>}
         <Row label={<><SquareTerminal size={14} /> Open a terminal here</>} onClick={() => setNewTab({ cwd: folder })}><ChevronRight size={16} /></Row>
         <Row label={<><Folder size={14} /> Browse files</>} onClick={() => setBrowse(folder)}><ChevronRight size={16} /></Row>
         {overview?.git && <Row label={<><GitPullRequest size={14} /> Pull requests</>} onClick={() => void loadPrs()}><ChevronRight size={16} /></Row>}
@@ -162,6 +165,7 @@ export function ProjectScreen(): React.JSX.Element {
         </Sheet>
       )}
       {newTab && <NewTabSheet initialCwd={newTab.cwd} launchCommand={newTab.command} onClose={() => setNewTab(null)} />}
+      {changes && <ChangesSheet folder={folder} onClose={() => setChanges(false)} />}
       {browse && <FilesSheet start={browse} onClose={() => setBrowse(null)} onOpenTerminal={(cwd) => { setBrowse(null); setNewTab({ cwd }) }} />}
       {prs && (
         <Sheet title={`Pull requests · ${prs.repo}`} onClose={() => setPrs(null)}>

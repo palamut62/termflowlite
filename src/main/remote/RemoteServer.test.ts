@@ -39,7 +39,7 @@ beforeAll(async () => {
     home: '/home/me'
   })
   hub.setTabs({ tabs: [{ id: 'tab1', title: 'pwsh', profileId: 'pwsh', running: true, activity: 'running', visible: true }], activeTabId: 'tab1' })
-  server = new RemoteServer({ staticDir: web, uploadDir: join(dir, 'uploads'), hub, devices, onPaired: () => undefined })
+  server = new RemoteServer({ staticDir: web, uploadDir: join(dir, 'uploads'), hub, devices, onPaired: () => undefined, onPushAction: (token) => token === 'good' })
   port = 40000 + Math.floor(Math.random() * 20000)
   await server.start(HOST, port)
   base = `http://${HOST}:${port}`
@@ -140,6 +140,14 @@ describe('host and origin checks', () => {
     expect(sameOrigin('http://100.89.62.116:47321', '100.89.62.116:47321')).toBe(true)
     expect(sameOrigin('http://evil.example', '100.89.62.116:47321')).toBe(false)
     expect(sameOrigin(undefined, '100.89.62.116:47321')).toBe(false)
+  })
+
+  it('answers ntfy push buttons by their one-time token, without an Origin', async () => {
+    const tap = (body: string, method = 'POST'): Promise<Response> => fetch(`${base}/api/push-action`, { method, body: method === 'POST' ? body : undefined })
+    expect((await tap('{"token":"good"}')).status).toBe(200)
+    expect((await tap('{"token":"stale"}')).status).toBe(410)
+    expect((await tap('not json')).status).toBe(400)
+    expect((await tap('', 'GET')).status).toBe(405)
   })
 
   it('rate limits per address', () => {

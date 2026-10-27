@@ -3,7 +3,7 @@ import { copyFile, mkdir, readdir, readFile, stat, unlink } from 'fs/promises'
 import { extname, join } from 'path'
 import { IPC, type AttentionBadge } from '../../shared/ipc'
 import type { PhonePushSettings } from '../../shared/types'
-import { sendPhonePush, type PhonePushEvent } from '../remote/phonePush'
+import { sendPhonePush, type PhonePushEvent, type PushAction } from '../remote/phonePush'
 
 /**
  * agent-attention (docs/orca-parity/agent-attention.md): ozel uyari sesi ve
@@ -14,14 +14,20 @@ const SOUND_EXTENSIONS = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
 const MAX_SOUND_BYTES = 5 * 1024 * 1024
 const SOUND_NAME = /^alert\.(?:mp3|wav|ogg|m4a|aac|flac)$/
 
-export function registerAlertsIpc(getWindow: () => BrowserWindow | null, getPush: () => PhonePushSettings | null): void {
+export function registerAlertsIpc(
+  getWindow: () => BrowserWindow | null,
+  getPush: () => PhonePushSettings | null,
+  /** Approve / Reject buttons for a push that needs input (Remote Access must be running). */
+  getActions: (tabId: string) => PushAction[] | undefined = () => undefined
+): void {
   const soundsDir = join(app.getPath('userData'), 'sounds')
 
   // Server and topic are read here, never taken from the renderer; buildPushRequest validates the event.
   ipcMain.on(IPC.ALERTS_PHONE_PUSH, (_event, event: PhonePushEvent) => {
     const push = getPush()
     if (!push?.enabled || !event || typeof event !== 'object') return
-    void sendPhonePush(push, event).then((error) => { if (error) console.warn('[phone-push]', error) })
+    const actions = event.kind === 'needs-input' && typeof event.tabId === 'string' ? getActions(event.tabId) : undefined
+    void sendPhonePush(push, event, fetch, actions).then((error) => { if (error) console.warn('[phone-push]', error) })
   })
 
   ipcMain.handle(IPC.ALERTS_PHONE_PUSH_TEST, async (): Promise<string | null> => {

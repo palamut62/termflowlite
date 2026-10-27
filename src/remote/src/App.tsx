@@ -3,6 +3,7 @@ import { Bot, Camera, FolderGit2, House, QrCode, Settings as SettingsIcon, Squar
 import { isLightColor } from '../../renderer/src/backdrop'
 import { resolveTheme } from '../../renderer/src/themes/themes'
 import { RemoteClient, loadToken, pairWithCode, saveToken } from './client'
+import { HAPTIC_GAP_MS, finishedHaptic, hasNative, postNative, type ActivitySeen } from './native'
 import { extractPairCode, readQrFromPhoto } from './qr'
 import { useRemote, type Screen } from './store'
 import { Toasts } from './ui'
@@ -128,6 +129,31 @@ function useViewportHeight(): void {
   }, [])
 }
 
+/**
+ * iPhone app only: keep the screen on while an agent works, a haptic tap when one finishes or
+ * needs you (while you look at the app).
+ */
+function useNativeSignals(): void {
+  const tabs = useRemote((s) => s.tabs)
+  const connection = useRemote((s) => s.connection)
+  const seen = useRef(new Map<string, ActivitySeen>())
+  const lastHaptic = useRef(0)
+  const awake = connection === 'online' && tabs.some((t) => t.activity === 'running')
+
+  useEffect(() => {
+    if (hasNative()) postNative({ type: 'awake', on: awake })
+  }, [awake])
+
+  useEffect(() => {
+    const now = Date.now()
+    const result = finishedHaptic(seen.current, tabs, now)
+    seen.current = result.seen
+    if (!result.kind || !hasNative() || document.visibilityState !== 'visible' || now - lastHaptic.current < HAPTIC_GAP_MS) return
+    lastHaptic.current = now
+    postNative({ type: 'haptic', kind: result.kind })
+  }, [tabs])
+}
+
 /** The phone chrome takes the light/dark tone of the desktop terminal theme. */
 function useDesktopTone(): void {
   const settings = useRemote((s) => s.settings)
@@ -150,6 +176,7 @@ export function App(): React.JSX.Element {
   const attach = useRemote((s) => s.attach)
   useViewportHeight()
   useDesktopTone()
+  useNativeSignals()
 
   const pairCode = useCallback((code: string): void => {
     setPairing(true)

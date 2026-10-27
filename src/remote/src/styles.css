@@ -299,3 +299,27 @@ button.home-card:active { background: var(--surface-2); }
 
 .term-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 2px 12px 6px 6px; }
 .term-head .ws-title span { display: flex; align-items: center; gap: 6px; }
+
+/* iPhone app: dictation banner sits above the exit/offline banners. */
+.term-banner.dictation { bottom: auto; top: 8px; justify-content: flex-start; color: var(--accent); }
+.key { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+.copy-text { margin: 0; padding: 10px; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; -webkit-user-select: text; user-select: text; }
+
+.snippet-row { display: flex; align-items: center; gap: 4px; }
+.snippet-text { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snippet-add { display: flex; gap: 8px; margin-top: 10px; }
+.snippet-add .input { flex: 1; min-width: 0; }
+
+.diff-files { display: flex; flex-direction: column; gap: 8px; }
+.diff-file { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.diff-file-head { width: 100%; display: flex; align-items: center; gap: 6px; padding: 10px; text-align: left; }
+.diff-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; }
+.diff-count { font-size: 12px; font-variant-numeric: tabular-nums; }
+.diff-count.add { color: var(--ok); }
+.diff-count.del { color: var(--bad); }
+.diff-body { margin: 0; padding: 6px 0; overflow-x: auto; border-top: 1px solid var(--border); font-size: 11.5px; line-height: 1.45; }
+.diff-line { display: block; padding: 0 10px; white-space: pre; }
+.diff-line.add { background: color-mix(in srgb, var(--ok) 16%, transparent); }
+.diff-line.del { background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.diff-line.hunk { color: var(--muted); }

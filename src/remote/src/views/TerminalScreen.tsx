@@ -3,7 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
-import { ArrowDown, ArrowLeft, ChevronLeft, ArrowRight, ArrowUp, CornerDownLeft, Keyboard, Minus, Paperclip, Plus, Send, Smartphone, SquareTerminal } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ChevronLeft, ArrowRight, ArrowUp, ClipboardPaste, CornerDownLeft, Keyboard, Mic, Minus, Paperclip, Plus, Send, Smartphone, SquareTerminal, Zap } from 'lucide-react'
 import { resolveTheme } from '../../../renderer/src/themes/themes'
 import type { RemoteTab, ServerMessage } from '../../../shared/remote'
 import { client, errorText, useRemote } from '../store'
@@ -13,6 +13,8 @@ import { Confirm, Empty, Sheet, TextField } from '../ui'
 import { NewTabSheet } from './NewTabSheet'
 import { workspaceKey } from './WorkspacesScreen'
 import { attachPhoneInput } from '../phoneInput'
+import { copyText, hasNative, onNative, postNative } from '../native'
+import { SnippetsSheet } from './SnippetsSheet'
 
 const FONT_KEY = 'termflow.remote.fontSize'
 const FIT_KEY = 'termflow.remote.fitPhone'
@@ -83,6 +85,12 @@ export function TerminalScreen(): React.JSX.Element {
   const [renaming, setRenaming] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [compose, setCompose] = useState('')
+  const [snippetsOpen, setSnippetsOpen] = useState(false)
+  /** Terminal text captured when the copy sheet opened; output arriving later must not move the selection. */
+  const [copyShot, setCopyShot] = useState<string | null>(null)
+  /** Live speech from the iPhone app while the mic key is held. */
+  const [dictation, setDictation] = useState<string | null>(null)
+  const native = hasNative()
 
   const current = tabs.find((t) => t.id === currentTabId) ?? null
 
@@ -339,12 +347,52 @@ export function TerminalScreen(): React.JSX.Element {
     sendInput(app ? `\x1bO${key}` : `\x1b[${key}`, true)
   }
 
-  const submitCompose = (): void => {
-    const text = compose.replace(/\r?\n/g, '\r')
+  /** A prompt for the current tab; Enter goes separately so agents do not take it as pasted text. */
+  const sendText = useCallback((value: string, enter: boolean): void => {
+    const text = value.replace(/\r?\n/g, '\r')
     // Bracketed paste (when the program asked for it) keeps a multi-line prompt in one block.
     if (text) sendInput(termRef.current?.modes.bracketedPasteMode ? `\x1b[200~${text}\x1b[201~` : text, true)
-    sendInput('\r', true)
+    if (enter) sendInput('\r', true)
+  }, [sendInput])
+
+  const submitCompose = (): void => {
+    sendText(compose, true)
     setCompose('')
+  }
+
+  // iPhone app: Shortcut text, pasted text and dictation land here.
+  useEffect(() => onNative((event) => {
+    if (event.type === 'info') return
+    if (event.type === 'notice') {
+      toast(event.text, 'error')
+      return
+    }
+    if (event.type === 'dictation') {
+      setDictation(event.state === 'listening' || event.state === 'partial' ? event.text : null)
+      if (event.state === 'error') toast(event.text || 'Dictation failed.', 'error')
+      if (event.state !== 'final' || !event.text.trim()) return
+    }
+    useRemote.getState().setScreen('terminal')
+    if (!tabRef.current) {
+      toast('Open a tab first.', 'error')
+      return
+    }
+    if (event.type === 'text') {
+      sendText(event.text, event.enter)
+      return
+    }
+    // Dictated text waits in the message box so it can be checked before sending.
+    liveRef.current?.blur()
+    setCompose((prev) => (prev ? `${prev} ${event.text}` : event.text))
+  }), [sendText, toast])
+
+  /** Text of the last screens for the copy sheet; selecting inside xterm is clumsy on a phone. */
+  const screenText = (): string => {
+    const buffer = termRef.current?.buffer.active
+    if (!buffer) return ''
+    const lines: string[] = []
+    for (let i = Math.max(0, buffer.length - 300); i < buffer.length; i++) lines.push(buffer.getLine(i)?.translateToString(true) ?? '')
+    return lines.join('\n').trimEnd()
   }
 
   const run = async (method: string, params: object, done?: string): Promise<void> => {
@@ -410,6 +458,7 @@ export function TerminalScreen(): React.JSX.Element {
             </Empty>
           </div>
         )}
+        {dictation !== null && <div className="term-banner dictation"><Mic size={14} /> {dictation || 'Listening...'}</div>}
         {connection !== 'online' && current && (
           <div className="term-banner">{connection === 'connecting' ? 'Connecting...' : 'Offline. Reconnecting...'}</div>
         )}
@@ -436,6 +485,19 @@ export function TerminalScreen(): React.JSX.Element {
             if (files.length) void upload(files)
           }}
         />
+        <button className="key" onClick={() => setSnippetsOpen(true)} disabled={!current} aria-label="Quick prompts" title="Saved prompts"><Zap size={16} /></button>
+        {native && <button className="key" onClick={() => postNative({ type: 'paste' })} disabled={!current} aria-label="Paste" title="Paste from the iPhone clipboard"><ClipboardPaste size={16} /></button>}
+        {native && (
+          <button
+            className={dictation !== null ? 'key on' : 'key'}
+            disabled={!current}
+            aria-label="Hold to dictate"
+            title="Hold and speak; release to put the text in the message box"
+            onPointerDown={() => postNative({ type: 'dictate', on: true })}
+            onPointerUp={() => postNative({ type: 'dictate', on: false })}
+            onPointerCancel={() => postNative({ type: 'dictate', on: false })}
+          ><Mic size={16} /></button>
+        )}
         <button className={fitPhone ? 'key on' : 'key'} onClick={toggleFit} aria-label="Fit to phone" aria-pressed={fitPhone} title="Fit to phone: resize the terminal to this screen while you watch it"><Smartphone size={16} /> Fit</button>
         <button className="key" onClick={() => sendInput('\x1b', true)}>Esc</button>
         <button className="key" onClick={() => sendInput('\t', true)}>Tab</button>
@@ -480,6 +542,10 @@ export function TerminalScreen(): React.JSX.Element {
       )}
 
       {newTabOpen && <NewTabSheet onClose={() => setNewTabOpen(false)} />}
+      {snippetsOpen && current && (
+        <SnippetsSheet target={current.title} onClose={() => setSnippetsOpen(false)} onSend={(text) => { sendText(text, true); setSnippetsOpen(false) }} />
+      )}
+      {copyShot !== null && <CopySheet text={copyShot} onClose={() => setCopyShot(null)} />}
 
       {menuOpen && current && (
         <Sheet title={current.title} onClose={() => { setMenuOpen(false); setRenaming(false) }}>
@@ -499,6 +565,7 @@ export function TerminalScreen(): React.JSX.Element {
               <div className="menu-list">
                 <button className="menu-item" onClick={() => setRenaming(true)}>Rename</button>
                 <button className="menu-item" onClick={() => { setMenuOpen(false); void run('tab.focus', { tabId: current.id }, 'Shown on the desktop.') }}>Show on desktop</button>
+                <button className="menu-item" onClick={() => { setMenuOpen(false); setCopyShot(screenText()) }}>Copy text</button>
                 <button className="menu-item" onClick={() => { setMenuOpen(false); void run('tab.restart', { tabId: current.id }) }}>Restart</button>
                 {!fitPhone && (
                   <div className="menu-item font-size">
@@ -534,5 +601,19 @@ export function TerminalScreen(): React.JSX.Element {
         />
       )}
     </div>
+  )
+}
+
+/** The terminal text as plain, selectable text: pick a part with the iOS handles or copy all. */
+function CopySheet({ text, onClose }: { text: string; onClose(): void }): React.JSX.Element {
+  const toast = useRemote((s) => s.toast)
+  const copyAll = async (): Promise<void> => {
+    if (await copyText(text)) toast('Copied.')
+    else toast('This browser does not allow copying here; select the text instead.', 'error')
+  }
+  return (
+    <Sheet title="Copy text" onClose={onClose} actions={<button className="btn small" onClick={() => void copyAll()}>Copy all</button>}>
+      <pre className="copy-text mono">{text || 'Nothing on the screen yet.'}</pre>
+    </Sheet>
   )
 }

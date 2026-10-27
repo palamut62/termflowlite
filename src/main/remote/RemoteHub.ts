@@ -25,6 +25,8 @@ export const REMOTE_IPC_CHANNELS: ReadonlySet<string> = new Set([
   IPC.PROVIDER_SECRET_DELETE,
   IPC.PROFILE_HEALTH,
   IPC.GIT_STATUS,
+  // Read-only uncommitted diff: review an agent's changes on the phone.
+  IPC.SCM_DIFF,
   IPC.WORKTREE_REPO_INFO,
   IPC.WORKTREE_LIST,
   IPC.WORKTREE_CREATE,

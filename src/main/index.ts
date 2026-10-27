@@ -498,7 +498,11 @@ app.whenReady().then(() => {
     return WIDGET_ACTIONS.includes(action as never) ? widget.handle(action as (typeof WIDGET_ACTIONS)[number]) : widget.state()
   })
   registerDialogIpc(() => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null))
-  registerAlertsIpc(() => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null), () => settingsStore?.get().remote.push ?? null)
+  registerAlertsIpc(
+    () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null),
+    () => settingsStore?.get().remote.push ?? null,
+    (tabId) => remoteController?.pushActions(tabId)
+  )
   // scrollback-restore: yalniz geri yuklenecek oturumun sekmeleri kalir, gerisi silinir.
   const scrollbackStore = new ScrollbackStore(join(app.getPath('userData'), 'scrollback'))
   const scrollbackEnabled = (): boolean => Boolean(settingsStore?.get().restoreScrollback && settingsStore.get().restoreSession)

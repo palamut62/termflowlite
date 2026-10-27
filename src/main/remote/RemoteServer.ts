@@ -115,6 +115,8 @@ export interface RemoteServerOptions {
   uploadDir: string
   /** A device paired; the desktop closes its QR. renewed: an existing device got a new key. */
   onPaired(deviceId: string, renewed: boolean): void
+  /** An Approve / Reject button of a phone push was tapped; false when the token is not valid (any more). */
+  onPushAction?(token: unknown): boolean
 }
 
 /**
@@ -129,6 +131,7 @@ export class RemoteServer {
   private address = ''
   private port = 0
   private pairLimiter = new RateLimiter(PAIR_ATTEMPTS_PER_MINUTE)
+  private actionLimiter = new RateLimiter(PAIR_ATTEMPTS_PER_MINUTE)
   private gzipCache = new Map<string, Buffer>()
 
   constructor(private readonly options: RemoteServerOptions) {}
@@ -226,6 +229,10 @@ export class RemoteServer {
       await this.handleUpload(req, res, host!)
       return
     }
+    if (url.pathname === '/api/push-action') {
+      await this.handlePushAction(req, res)
+      return
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405).end()
       return
@@ -251,6 +258,27 @@ export class RemoteServer {
     if (!paired) return json(401, { error: 'This QR code has expired or was already used. Show a new one on the desktop.' })
     this.options.onPaired(paired.device.id, paired.renewed)
     json(200, { token: paired.token, device: paired.device })
+  }
+
+  /**
+   * Sent by the ntfy phone app, not a browser: there is no Origin and no device key. The one-time
+   * token from the push is the credential (phonePush.ts PushActionTokens); guesses are rate limited.
+   */
+  private async handlePushAction(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const json = (status: number, body: object): void => {
+      res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(JSON.stringify(body))
+    }
+    if (req.method !== 'POST') return json(405, { error: 'Method not allowed' })
+    if (!this.actionLimiter.allow(req.socket.remoteAddress ?? 'unknown')) return json(429, { error: 'Too many attempts. Wait a minute.' })
+    let body: { token?: unknown }
+    try {
+      body = JSON.parse(await readBody(req, 1024)) as typeof body
+    } catch {
+      return json(400, { error: 'Invalid request' })
+    }
+    if (!this.options.onPushAction?.(body?.token)) return json(410, { error: 'This button has expired or was already used.' })
+    json(200, { ok: true })
   }
 
   /** Raw file body, device token in `Authorization`, name in `X-File-Name` (URI-encoded). Answers `{ path }`. */

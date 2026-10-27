@@ -4,6 +4,7 @@ import QRCode from 'qrcode'
 import type { AppSettings, ShellInfo } from '../../shared/types'
 import type { RemoteCommandReply, RemoteDeviceInfo, RemotePairing, RemoteStatus, RemoteTabCommand, RemoteTabsState } from '../../shared/remote'
 import { DeviceStore, formatPairingCode } from './devices'
+import { PushActionTokens, buildPushActions, type PushAction } from './phonePush'
 import { RemoteHub, type RemoteHubDeps, type RemoteTerminals } from './RemoteHub'
 import { RemoteServer } from './RemoteServer'
 import { findTailscaleAddress } from './tailscale'
@@ -47,6 +48,8 @@ export class RemoteController {
   private poll: NodeJS.Timeout | null = null
   private pending = new Map<string, { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }>()
   private applying: Promise<void> = Promise.resolve()
+  private pushTokens = new PushActionTokens()
+  private tabs: RemoteTabsState = { tabs: [], activeTabId: null }
 
   constructor(private readonly deps: RemoteControllerDeps) {
     this.devices = new DeviceStore(deps.devicesFile)
@@ -75,7 +78,8 @@ export class RemoteController {
         if (renewed) this.hub.revokeDevice(deviceId)
         this.lastPairedAt = Date.now()
         this.publish()
-      }
+      },
+      onPushAction: (token) => this.runPushAction(token)
     })
   }
 
@@ -178,7 +182,21 @@ export class RemoteController {
   }
 
   setTabs(state: RemoteTabsState): void {
+    this.tabs = state
     this.hub.setTabs(state)
+  }
+
+  /** Approve / Reject buttons for a "needs input" push; none while the server is not reachable. */
+  pushActions(tabId: string): PushAction[] | undefined {
+    if (this.state.state !== 'running' || !this.state.url) return undefined
+    return buildPushActions(this.state.url, this.pushTokens.issue(tabId))
+  }
+
+  private runPushAction(token: unknown): boolean {
+    const action = this.pushTokens.consume(token)
+    if (!action || !this.tabs.tabs.some((t) => t.id === action.tabId)) return false
+    this.deps.terminals.write(action.tabId, action.data)
+    return true
   }
 
   settingsChanged(settings: AppSettings): void {

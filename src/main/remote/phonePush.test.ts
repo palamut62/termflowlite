@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { PUSH_TOPIC, buildPushRequest, newPushTopic, normalizePushServer, sendPhonePush } from './phonePush'
+import { PUSH_ACTION_KEYS, PUSH_TOPIC, PushActionTokens, buildPushActions, buildPushRequest, newPushTopic, normalizePushServer, sendPhonePush } from './phonePush'
 
 const settings = { enabled: true, server: 'https://ntfy.sh', topic: 'termflow-abcdefghijklmnopqrst' }
 const event = { tabId: 'Ab3_x-9QzK', kind: 'needs-input' as const, title: 'Claude Code needs you', body: 'Çalışma sekmesi' }
@@ -50,5 +50,35 @@ describe('phone push', () => {
     const offline = vi.fn(async () => { throw new Error('getaddrinfo ENOTFOUND') })
     expect(await sendPhonePush(settings, event, offline as unknown as typeof fetch)).toBe('getaddrinfo ENOTFOUND')
     expect(await sendPhonePush({ ...settings, enabled: false }, event, ok as unknown as typeof fetch)).toMatch(/off/)
+  })
+
+  it('adds Approve / Reject buttons that post one-time tokens to the remote server', () => {
+    const actions = buildPushActions('http://100.64.0.2:7420', { approve: 'a1', reject: 'r1' })
+    const body = JSON.parse(buildPushRequest(settings, event, actions)!.body)
+    expect(body.actions).toEqual([
+      { action: 'http', label: 'Approve', url: 'http://100.64.0.2:7420/api/push-action', method: 'POST', body: '{"token":"a1"}' },
+      { action: 'http', label: 'Reject', url: 'http://100.64.0.2:7420/api/push-action', method: 'POST', body: '{"token":"r1"}' }
+    ])
+    expect(JSON.parse(buildPushRequest(settings, event)!.body).actions).toBeUndefined()
+  })
+
+  it('action tokens work once, burn their sibling, expire and are replaced by a newer push', () => {
+    let now = 1_000
+    const store = new PushActionTokens(() => now)
+    const first = store.issue('tab1')
+    expect(store.consume(first.approve)).toEqual({ tabId: 'tab1', data: PUSH_ACTION_KEYS.approve })
+    expect(store.consume(first.approve)).toBeNull()
+    expect(store.consume(first.reject)).toBeNull()
+
+    const old = store.issue('tab1')
+    const fresh = store.issue('tab1')
+    expect(store.consume(old.reject)).toBeNull()
+    expect(store.consume(fresh.reject)).toEqual({ tabId: 'tab1', data: PUSH_ACTION_KEYS.reject })
+
+    const late = store.issue('tab2')
+    now += 11 * 60_000
+    expect(store.consume(late.approve)).toBeNull()
+    expect(store.consume(undefined)).toBeNull()
+    expect(store.consume('x'.repeat(500))).toBeNull()
   })
 })
