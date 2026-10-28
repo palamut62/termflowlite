@@ -325,12 +325,17 @@ button.home-card:active { background: var(--surface-2); }
 .diff-line.hunk { color: var(--muted); }
 
 /* ---------- Screen sharing (noVNC) ---------- */
-.screen-view { position: absolute; inset: 0; background: #000; }
+.screen-view { position: absolute; inset: 0; background: #000; --screen-bar: 64px; }
 .screen-canvas { position: absolute; inset: 0; }
 .screen-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; color: var(--muted); background: var(--bg); }
 .screen-overlay p { margin: 0; max-width: 320px; }
 .screen-password { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; text-align: left; }
 .screen-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 6px; justify-content: center; padding: 6px; background: color-mix(in srgb, var(--surface) 86%, transparent); border-top: 1px solid var(--border); }
+/* Yatayda masaustu letterbox olur: bar yan bosluga gecer, PC gorev cubugunu kapatmaz. */
+.screen-view.immersive .screen-canvas { right: var(--screen-bar); }
+.screen-view.immersive .screen-bar { left: auto; top: 0; width: var(--screen-bar); flex-direction: column; align-items: stretch; justify-content: center; border-top: 0; border-left: 1px solid var(--border); padding: 6px 5px; }
+.screen-view.immersive .screen-bar .btn { min-height: 40px; padding: 0 4px; font-size: 11px; line-height: 1.15; white-space: normal; }
+
 .screen-bar .btn { min-height: 36px; padding: 0 10px; font-size: 13px; }
 .screen-bar .btn.active { border-color: var(--accent); color: var(--accent); }
 /* Focusable but out of the way: tapping Keyboard focuses it to raise the phone keyboard. */

@@ -106,6 +106,15 @@ export function ScreenShare(): React.JSX.Element {
     return () => document.documentElement.removeAttribute('data-immersive')
   }, [immersive])
 
+  // Full screen moves the button bar to the side, so the canvas box changes
+  // after this render; the scale has to be asked for once the new box exists.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (rfb.current) rfb.current.scaleViewport = true
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [immersive])
+
   useEffect(() => {
     if (rfb.current) rfb.current.viewOnly = viewOnly
   }, [viewOnly])
