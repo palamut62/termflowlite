@@ -80,6 +80,7 @@
     'f8.li2': 'Sekme aç ve kapat; herhangi bir kabuğu, ajanı, sağlayıcıyı ya da SSH bağlantısını başlat, ajan oturumlarını sürdür, kayıtlı komutları çalıştır',
     'f8.li3': 'Ayarları, profilleri, sağlayıcıları ve SSH bağlantılarını telefondan değiştir; bilgisayar hemen uygular',
     'f8.li4': 'Yalnızca Tailscale adresini dinler, yerel ağa ya da internete açılmaz. Telefon uygulamasından, ana ekrandan bile QR okutarak eşleşir; sen bağlantıyı kesene kadar eşli kalır',
+    'f8.li5': 'Yalnızca terminali değil, bilgisayarın tamamını gör ve yönet: Screen sekmesi masaüstünü telefona getirir, oturum açma ekranı ve UAC pencereleri dahil. Dokunuş fareyi oynatır, telefon klavyesi yazar, telefonu yan çevirince ekranı kaplar. Bilgisayarda servis olarak çalışan bir VNC sunucusu ister; TermFlow ona bilgisayarın kendi üzerinden ulaşır, ağa hiç açmaz',
     'f8.alt': 'Eşleştirme QR kodu gösteren Ayarlar > Remote Access ve yanında aynı PowerShell sekmesini çalıştıran bir telefon',
 
     'f10.title': 'Bilgisayarındaki her ajan hazır',
