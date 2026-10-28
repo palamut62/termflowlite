@@ -109,3 +109,19 @@ Metotlar: `ipc` (izin listeli kanal), `tab.open|close|rename|focus|restart`,
   tarayici anahtari kendiliginden gondermez): `GET /api/status` -> `{computer, tabs[{id,title,activity,agent}]}`;
   `POST /api/type {text}` -> masaustundeki aktif sekmeye yazar, ENTER YOK, kontrol karakterleri (Enter/Esc/^C...) bosluga
   cevrilir (`typeableText`), 32 KB sinir. Sayfa da uygulamaya `status` mesaji gonderir (uygulama acikken widget/Live Activity).
+
+## Ekran paylasimi - tam PC kontrolu (2026-10-28)
+- Karar: ekran yakalama / girdi enjeksiyonu TermFlow'a yazilmaz. Bilgisayarda bir VNC *servisi* (UltraVNC / TightVNC)
+  calisir, TermFlow yalnizca borudur. Sebep: oturum acma ekrani ve UAC (secure desktop) kullanici oturumunda kosan bir
+  Electron uygulamasi tarafindan ne goruntulenebilir ne de tuslanabilir; SYSTEM yetkisiyle kosan bir servis gerekir.
+  Boylece yakalama, kodlama, gecikme ayari ve kilit ekrani sorunlarinin hepsi hazir bir yerel servise devredilir.
+- Ayar: `settings.remote.screen = { enabled, port }` (varsayilan kapali, 5900). Masaustunde Ayarlar > Remote Access > Screen.
+- Akis: telefon `POST /api/screen-ticket` (cihaz anahtari + Origin) -> tek kullanimlik 15 sn'lik bilet; `ws://host/vnc?t=<bilet>`
+  yukseltmesi bileti harcar ve soket `127.0.0.1:<port>`'a baglanir (`src/main/remote/screenBridge.ts`). Bilet gerekir cunku
+  WebSocket yukseltmesi `Authorization` tasimaz ve uzun omurlu cihaz anahtari URL'ye yazilmaz.
+- Telefon istemcisi: `src/remote/src/views/ScreenShare.tsx`, noVNC (`@novnc/novnc`, MPL-2.0, bagimliligi ve install script'i yok).
+  `scaleViewport` ile ekrana sigar; alt barda Keyboard (iOS yazilim klavyesi gizli bir input'a odaklanir, `beforeinput` ->
+  `sendKey`), Ctrl+Alt+Del, yalniz izle, tam ekran (`:root[data-immersive]` ust/alt barlari gizler), kapat.
+- VNC parolasi hicbir yerde saklanmaz: `credentialsrequired` olayinda telefonda sorulur, sayfa kapaninca gider.
+- Kapsam disi: VNC servisini TermFlow'un kendisinin kurmasi/yonetmesi, port dinleme kontrolu, ses, dosya aktarimi, cok monitor
+  secimi (noVNC tum masaustunu tek goruntu olarak verir).

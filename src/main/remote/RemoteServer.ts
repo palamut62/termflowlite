@@ -6,6 +6,7 @@ import { WebSocketServer, type WebSocket } from 'ws'
 import { MAX_CLIENT_MESSAGE_BYTES, type RemoteTab } from '../../shared/remote'
 import type { DeviceStore } from './devices'
 import type { RemoteConnection, RemoteHub } from './RemoteHub'
+import { ScreenTickets, bridgeScreen, type ScreenSocket } from './screenBridge'
 import { MAX_UPLOAD_BYTES, saveUpload } from './uploads'
 
 const MIME: Record<string, string> = {
@@ -24,6 +25,8 @@ const PAIR_ATTEMPTS_PER_MINUTE = 10
 /** Text assets are gzipped once and kept; the bundle is ~0.5 MB raw. */
 const COMPRESSIBLE = new Set(['.html', '.js', '.css', '.json', '.webmanifest', '.svg'])
 const HEARTBEAT_MS = 25_000
+/** Phone -> screen frames are key and pointer events; nothing legitimate is larger. */
+const MAX_SCREEN_FRAME_BYTES = 64 * 1024
 
 /**
  * Hostnames the server answers to: the bound address, Tailscale MagicDNS
@@ -121,6 +124,8 @@ export interface RemoteServerOptions {
   status?(): RemoteStatusSummary
   /** Text from the iPhone share sheet for the desktop's active tab, never with Enter (`POST /api/type`). */
   typeText?(text: string): boolean
+  /** Port of the local VNC server for screen sharing, or null while it is off (screenBridge.ts). */
+  screenPort?(): number | null
 }
 
 export interface RemoteStatusSummary {
@@ -142,6 +147,8 @@ export function typeableText(text: string): string {
 export class RemoteServer {
   private server: Server | null = null
   private wss: WebSocketServer | null = null
+  private screenWss: WebSocketServer | null = null
+  private screenTickets = new ScreenTickets()
   private heartbeat: NodeJS.Timeout | null = null
   private address = ''
   private port = 0
@@ -166,17 +173,38 @@ export class RemoteServer {
       })
     })
     const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_CLIENT_MESSAGE_BYTES })
+    // Screen sharing is a raw byte stream, so it gets its own server: binary
+    // frames, no JSON heartbeat, and only phone input comes up this way.
+    const screenWss = new WebSocketServer({ noServer: true, maxPayload: MAX_SCREEN_FRAME_BYTES, handleProtocols: (protocols) => protocols.values().next().value ?? false })
     server.on('upgrade', (req, socket, head) => {
       const host = req.headers.host
-      if (req.url !== '/ws' || !allowedHost(host, this.address, this.port) || !sameOrigin(req.headers.origin, host)) {
-        socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
+      const url = new URL(req.url ?? '/', `http://${host ?? this.address}`)
+      const screen = url.pathname === '/vnc'
+      const refuse = (reason: string): void => {
+        socket.write(`HTTP/1.1 403 ${reason}\r\nConnection: close\r\n\r\n`)
         socket.destroy()
+      }
+      if ((url.pathname !== '/ws' && !screen) || !allowedHost(host, this.address, this.port) || !sameOrigin(req.headers.origin, host)) {
+        refuse('Forbidden')
         return
       }
-      wss.handleUpgrade(req, socket, head, (ws) => this.attach(ws))
+      if (!screen) {
+        wss.handleUpgrade(req, socket, head, (ws) => this.attach(ws))
+        return
+      }
+      const screenPort = this.options.screenPort?.() ?? null
+      if (screenPort === null || !this.screenTickets.consume(url.searchParams.get('t'))) {
+        refuse('Forbidden')
+        return
+      }
+      screenWss.handleUpgrade(req, socket, head, (ws) => {
+        ws.binaryType = 'nodebuffer'
+        bridgeScreen(ws as unknown as ScreenSocket, screenPort)
+      })
     })
     this.server = server
     this.wss = wss
+    this.screenWss = screenWss
     await new Promise<void>((resolve, reject) => {
       const onError = (error: Error): void => reject(error)
       server.once('error', onError)
@@ -201,11 +229,13 @@ export class RemoteServer {
   async stop(): Promise<void> {
     if (this.heartbeat) clearInterval(this.heartbeat)
     this.heartbeat = null
-    const { server, wss } = this
+    const { server, wss, screenWss } = this
     this.server = null
     this.wss = null
-    for (const ws of wss?.clients ?? []) ws.terminate()
+    this.screenWss = null
+    for (const ws of [...(wss?.clients ?? []), ...(screenWss?.clients ?? [])]) ws.terminate()
     wss?.close()
+    screenWss?.close()
     if (server) await new Promise<void>((resolve) => server.close(() => resolve()))
   }
 
@@ -244,6 +274,10 @@ export class RemoteServer {
       await this.handleUpload(req, res, host!)
       return
     }
+    if (url.pathname === '/api/screen-ticket') {
+      await this.handleScreenTicket(req, res, host!)
+      return
+    }
     if (url.pathname === '/api/push-action') {
       await this.handlePushAction(req, res)
       return
@@ -277,6 +311,20 @@ export class RemoteServer {
     if (!paired) return json(401, { error: 'This QR code has expired or was already used. Show a new one on the desktop.' })
     this.options.onPaired(paired.device.id, paired.renewed)
     json(200, { token: paired.token, device: paired.device })
+  }
+
+  /** One-time ticket for the screen WebSocket; the device key cannot travel in an upgrade header. */
+  private async handleScreenTicket(req: IncomingMessage, res: ServerResponse, host: string): Promise<void> {
+    const json = (status: number, body: object): void => {
+      res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(JSON.stringify(body))
+    }
+    if (req.method !== 'POST') return json(405, { error: 'Method not allowed' })
+    if (!sameOrigin(req.headers.origin, host)) return json(403, { error: 'Forbidden' })
+    const token = /^Bearer (.+)$/.exec(String(req.headers.authorization ?? ''))?.[1]
+    if (!this.options.devices.authenticate(token)) return json(401, { error: 'This phone is not paired.' })
+    if ((this.options.screenPort?.() ?? null) === null) return json(409, { error: 'Screen sharing is off on the computer.' })
+    json(200, { ticket: this.screenTickets.issue() })
   }
 
   /**

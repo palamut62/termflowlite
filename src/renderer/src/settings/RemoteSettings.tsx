@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Bell, Copy, QrCode, ShieldCheck, Smartphone, Trash2 } from 'lucide-react'
+import { Bell, Copy, Monitor, QrCode, ShieldCheck, Smartphone, Trash2 } from 'lucide-react'
 import type { RemoteDeviceInfo, RemotePairing, RemoteStatus } from '../../../shared/remote'
 import type { ElevationStatus, PhonePushSettings as PushSettings } from '../../../shared/types'
 import { useSettingsStore } from '../store/settingsStore'
@@ -122,6 +122,45 @@ function AdminTabsSettings(): React.JSX.Element | null {
             onClick={() => void run(() => window.termflow.remote.enableElevation(pin), 'Administrator tabs are ready on the phone.')}>
             {status === 'on' ? 'Change PIN' : 'Turn on'}
           </button>
+        </span>
+      </Field>
+    </>
+  )
+}
+
+/**
+ * The whole desktop on the phone. TermFlow does not capture the screen itself:
+ * it pipes a paired phone to a VNC server running on this computer. That is the
+ * reason the sign-in screen and UAC prompts work - a VNC service runs with
+ * Windows' own rights, which this app does not have.
+ */
+function ScreenShareSettings(): React.JSX.Element {
+  const remote = useSettingsStore((s) => s.settings.remote)
+  const update = useSettingsStore((s) => s.update)
+  const screen = remote.screen
+  const [port, setPort] = useState(screen.port)
+  useEffect(() => setPort(screen.port), [screen.port])
+
+  const save = (next: Partial<typeof screen>): Promise<void> => update({ remote: { ...remote, screen: { ...screen, ...next } } })
+
+  return (
+    <>
+      <div className="settings-section-title"><Monitor size={14} /> Screen</div>
+      <p className="settings-note">
+        Shows this whole computer on the phone, in the TermFlow app's Screen tab, with touch as mouse and the phone
+        keyboard as keys - the sign-in screen and UAC prompts included. It needs a VNC server on this computer:
+        install UltraVNC or TightVNC <strong>as a service</strong>, give it a password, and leave it on its default
+        port. TermFlow only connects to it on this computer (127.0.0.1) and passes the bytes to the paired phone over
+        Tailscale, so the VNC server itself never has to accept connections from the network - keep it set to
+        loopback only if it offers the choice.
+      </p>
+      <Field label="Share the screen" hint={screen.enabled ? 'Paired phones can open the Screen tab' : 'Off: the Screen tab stays empty'}>
+        <Toggle checked={screen.enabled} label="Share the screen" onChange={(on) => void save({ enabled: on })} />
+      </Field>
+      <Field label="VNC port on this computer" hint="5900 is what UltraVNC and TightVNC use by default">
+        <span className="memory-inline">
+          <NumberInput value={port} min={1} max={65535} onChange={setPort} />
+          <button className="settings-btn settings-btn-small" disabled={port === screen.port} onClick={() => void save({ port })}>Apply</button>
         </span>
       </Field>
     </>
@@ -287,6 +326,7 @@ export function RemoteSettings(): React.JSX.Element {
         )
         : <button className="settings-btn" onClick={() => setConfirmAll(true)}>Disconnect all...</button>)}
       <AdminTabsSettings />
+      <ScreenShareSettings />
       <PhonePushSettings />
     </div>
   )

@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { createServer, type Server, type Socket } from 'net'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -17,6 +18,10 @@ let port: number
 let base: string
 const writes: string[] = []
 const typed: string[] = []
+let vnc: Server
+let vncPort: number
+let screenOn = true
+const vncSockets: Socket[] = []
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'tfl-remote-srv-'))
@@ -40,9 +45,17 @@ beforeAll(async () => {
     home: '/home/me'
   })
   hub.setTabs({ tabs: [{ id: 'tab1', title: 'pwsh', profileId: 'pwsh', running: true, activity: 'running', visible: true }], activeTabId: 'tab1' })
+  // Stands in for a VNC server on this computer: echoes bytes upper-cased.
+  vnc = createServer((socket) => {
+    vncSockets.push(socket)
+    socket.on('data', (chunk: Buffer) => socket.write(Buffer.from(chunk.toString().toUpperCase())))
+  })
+  await new Promise<void>((resolve) => vnc.listen(0, '127.0.0.1', resolve))
+  vncPort = (vnc.address() as { port: number }).port
   server = new RemoteServer({ staticDir: web, uploadDir: join(dir, 'uploads'), hub, devices, onPaired: () => undefined, onPushAction: (token) => token === 'good',
     status: () => ({ computer: 'pc', tabs: [{ id: 'tab1', title: 'pwsh', activity: 'waiting', agent: false }] }),
-    typeText: (text) => { typed.push(text); return true }
+    typeText: (text) => { typed.push(text); return true },
+    screenPort: () => screenOn ? vncPort : null
   })
   port = 40000 + Math.floor(Math.random() * 20000)
   await server.start(HOST, port)
@@ -51,6 +64,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await server.stop()
+  for (const socket of vncSockets) socket.destroy()
+  await new Promise<void>((resolve) => vnc.close(() => resolve()))
   rmSync(dir, { recursive: true, force: true })
 })
 
@@ -127,6 +142,36 @@ describe('RemoteServer', () => {
 
   it('refuses sockets from a foreign origin', async () => {
     await expect(open('http://evil.example')).rejects.toThrow('403')
+  })
+
+  it('bridges the screen socket for a paired phone with a fresh ticket only', async () => {
+    const ask = (token: string, origin = base): Promise<Response> =>
+      fetch(`${base}/api/screen-ticket`, { method: 'POST', headers: { Origin: origin, Authorization: `Bearer ${token}` } })
+    const openScreen = (query: string): Promise<WebSocket> => new Promise((resolve, reject) => {
+      const ws = new WebSocket(`ws://${HOST}:${port}/vnc${query}`, { headers: { Origin: base } })
+      ws.once('open', () => resolve(ws))
+      ws.once('error', reject)
+      ws.once('unexpected-response', (_req, res) => reject(new Error(`HTTP ${res.statusCode}`)))
+    })
+    const { code } = devices.startPairing()
+    const { token } = await (await pair(code)).json() as { token: string }
+    expect((await ask('x'.repeat(40))).status).toBe(401)
+    expect((await ask(token, 'http://evil.example')).status).toBe(403)
+    const { ticket } = await (await ask(token)).json() as { ticket: string }
+
+    await expect(openScreen('')).rejects.toThrow('403')
+    const ws = await openScreen(`?t=${ticket}`)
+    const echo = new Promise<string>((resolve) => ws.once('message', (data) => resolve(data.toString())))
+    ws.send(Buffer.from('rfb'))
+    expect(await echo).toBe('RFB')
+    ws.close()
+    // A ticket is spent by the socket that used it.
+    await expect(openScreen(`?t=${ticket}`)).rejects.toThrow('403')
+
+    screenOn = false
+    expect((await ask(token)).status).toBe(409)
+    await expect(openScreen('?t=none')).rejects.toThrow('403')
+    screenOn = true
   })
 })
 

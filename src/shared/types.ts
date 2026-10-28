@@ -554,6 +554,14 @@ export interface RemoteSettings {
   port: number
   /** Agent alerts pushed to the phone through ntfy, also when TermFlow Remote is closed. */
   push: PhonePushSettings
+  /** The whole desktop on the phone, through a VNC server on this computer. */
+  screen: RemoteScreenSettings
+}
+
+export interface RemoteScreenSettings {
+  enabled: boolean
+  /** Port of the VNC server on this computer; 5900 is the standard one. */
+  port: number
 }
 
 export interface PhonePushSettings {
@@ -906,7 +914,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   weatherPlace: null,
   asciiBackgrounds: {},
   memory: { enabled: false, updateEvery: 'hourly', model: 'deepseek/deepseek-v4-flash', excludedProjects: [] },
-  remote: { enabled: false, port: 47321, push: { enabled: false, server: 'https://ntfy.sh', topic: '' } },
+  remote: { enabled: false, port: 47321, push: { enabled: false, server: 'https://ntfy.sh', topic: '' }, screen: { enabled: false, port: 5900 } },
   voice: { enabled: false, model: 'google/gemini-2.5-flash-lite', holdMs: 400, cleanup: true, language: 'auto', speak: { enabled: false, model: 'antalia', speed: 1, studioDir: '' } },
   // Dilim 0 olcumunde en hizli gecen ucretsiz model; listede yoksa kullanici secer.
   orchestration: { enabled: false, maxConcurrent: 2, timeoutMinutes: 10, claudeThreshold: 70, targets: { opencode: { enabled: true, model: 'opencode/deepseek-v4.1-flash-free' } } },

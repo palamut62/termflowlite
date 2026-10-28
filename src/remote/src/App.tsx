@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Bot, Camera, FolderGit2, House, QrCode, Settings as SettingsIcon, SquareTerminal, WifiOff } from 'lucide-react'
+import { Bot, Camera, FolderGit2, House, Monitor, QrCode, Settings as SettingsIcon, SquareTerminal, WifiOff } from 'lucide-react'
 import { isLightColor } from '../../renderer/src/backdrop'
 import { resolveTheme } from '../../renderer/src/themes/themes'
 import { agentForProfile } from '../../shared/profiles'
@@ -13,6 +13,7 @@ import { AgentsScreen } from './views/AgentsScreen'
 import { ProjectScreen } from './views/ProjectScreen'
 import { SettingsScreen } from './views/SettingsScreen'
 import { HomeScreen } from './views/HomeScreen'
+import { ScreenShare } from './views/ScreenShare'
 import { WorkspacesScreen } from './views/WorkspacesScreen'
 
 // Settings sits behind the gear in the header (Orca Mobile); the bar keeps the four places you work in.
@@ -20,7 +21,8 @@ const NAV: { id: Screen; label: string; icon: React.JSX.Element }[] = [
   { id: 'home', label: 'Home', icon: <House size={20} /> },
   { id: 'terminal', label: 'Terminal', icon: <SquareTerminal size={20} /> },
   { id: 'agents', label: 'Agents', icon: <Bot size={20} /> },
-  { id: 'project', label: 'Project', icon: <FolderGit2 size={20} /> }
+  { id: 'project', label: 'Project', icon: <FolderGit2 size={20} /> },
+  { id: 'desktop', label: 'Screen', icon: <Monitor size={20} /> }
 ]
 
 /** Reads a one-time #name=value, removing it from the address bar right away. */
@@ -269,6 +271,7 @@ export function App(): React.JSX.Element {
         {screen === 'home' && <div className="screen scroll"><HomeScreen /></div>}
         {screen === 'agents' && <div className="screen scroll"><AgentsScreen /></div>}
         {screen === 'project' && <div className="screen scroll"><ProjectScreen /></div>}
+        {screen === 'desktop' && <div className="screen"><ScreenShare /></div>}
         {screen === 'settings' && <div className="screen scroll"><SettingsScreen /></div>}
       </main>
       <nav className="bottom-nav" aria-label="Sections">

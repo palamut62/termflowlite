@@ -90,6 +90,10 @@ export class RemoteController {
         if (!tabId) return false
         this.deps.terminals.write(tabId, text)
         return true
+      },
+      screenPort: () => {
+        const { screen } = deps.getSettings().remote
+        return screen.enabled ? screen.port : null
       }
     })
   }

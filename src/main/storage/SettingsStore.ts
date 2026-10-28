@@ -44,7 +44,16 @@ function normalizeRemoteSettings(value: unknown): AppSettings['remote'] {
   const port = typeof input.port === 'number' && Number.isInteger(input.port) && input.port >= 1024 && input.port <= 65535
     ? input.port
     : DEFAULT_SETTINGS.remote.port
-  return { enabled: input.enabled === true, port, push: normalizePhonePush(input.push) }
+  const screenInput = input.screen && typeof input.screen === 'object' ? input.screen as Partial<AppSettings['remote']['screen']> : {}
+  const screenPort = typeof screenInput.port === 'number' && Number.isInteger(screenInput.port) && screenInput.port >= 1 && screenInput.port <= 65535
+    ? screenInput.port
+    : DEFAULT_SETTINGS.remote.screen.port
+  return {
+    enabled: input.enabled === true,
+    port,
+    push: normalizePhonePush(input.push),
+    screen: { enabled: screenInput.enabled === true, port: screenPort }
+  }
 }
 function normalizePhonePush(value: unknown): AppSettings['remote']['push'] {
   const input = value && typeof value === 'object' ? value as Partial<AppSettings['remote']['push']> : {}

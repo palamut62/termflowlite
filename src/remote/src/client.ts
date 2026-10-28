@@ -65,6 +65,17 @@ export async function uploadFile(file: File): Promise<string> {
   return body.path
 }
 
+/**
+ * One-time ticket for the screen socket (`/vnc`): a WebSocket upgrade carries no
+ * Authorization header, so the device key is spent here for a short-lived ticket.
+ */
+export async function screenTicket(): Promise<string> {
+  const res = await fetch('/api/screen-ticket', { method: 'POST', headers: { Authorization: `Bearer ${loadToken() ?? ''}` } })
+  const body = await res.json().catch(() => ({})) as { ticket?: string; error?: string }
+  if (!res.ok || !body.ticket) throw new Error(body.error || 'The computer did not allow the screen.')
+  return body.ticket
+}
+
 type Listener = (message: ServerMessage) => void
 
 /**
