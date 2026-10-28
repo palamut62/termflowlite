@@ -1,5 +1,9 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.28.0 - 2026-10-28
+
+- Everything in TermFlow Lite 1.28.0: the phone's new Screen tab shows and controls the whole computer through a VNC server running on it, sign-in screen and UAC included.
+
 ## 1.27.1 - 2026-10-24
 
 - Everything in TermFlow Lite 1.27.1: phone reconnect heartbeat, easier phone settings, permission level menu on the status bar shield.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.28.0 - 2026-10-28
+
+- Screen sharing: the phone shows your whole computer and controls it, the Windows sign-in screen and UAC prompts included. Touch moves the mouse, the phone keyboard types, and the bar has Ctrl+Alt+Del, watch only and full screen. Turn the phone sideways to fill its screen.
+- It needs a VNC server running as a service on the computer (UltraVNC or TightVNC). TermFlow reaches it on this computer only and passes it to a paired phone over Tailscale, so the VNC server never has to accept connections from the network. Turn it on in Settings > Remote Access > Screen; the VNC password is asked on the phone and is never stored.
+
 ## 1.27.1 - 2026-10-24
 
 - Phone: a dropped connection is detected by a heartbeat and reconnects by itself; the settings sheets are easier to use on a phone, and the tab strip shows only the selected workspace's terminals.
