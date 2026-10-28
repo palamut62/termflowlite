@@ -1,6 +1,6 @@
 # TermFlow Lite - Durum
 
-guncel: 2026-10-27
+guncel: 2026-10-28
 
 > Bu dosya projeye giren her yapay zeka aracinin ilk okudugu yerdir. Kisa tutulur (en fazla ~80 satir).
 > Kalici bilgi (mimari, kararlar, ayrintili gecmis) `PROJE-REHBER.md`'de (varsa) / README'de.
@@ -39,13 +39,18 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
 - Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Son oturum (2026-10-27, son arac: Claude Code, dal feature/phone-push)
+## Son oturum (2026-10-28, son arac: Claude Code, dal feature/phone-push)
+- Caret (yeni sekme) menusunden acilan sekmeler sidebar agacinda gorunmuyordu: renderer `cwd` vermedigi icin `tabPath` bos kaliyordu. `PtyCore.create` artik klasor verilmemisse cozulen cwd'yi bir kez `cwd` olayiyla bildiriyor (mevcut onCwd -> setTabCwd hatti, yeni IPC yok). 2 birim test eklendi.
+- verify yesil; Lite + Agent IDE 1.27.1 derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle denenmedi; surum artmadi, yayinlanmadi.
+- Not: SSH sekmeleri de artik yerel home projesi altinda gorunur (onceden hic gorunmuyordu); istenmezse ayrilabilir.
+
+## Onceki oturum (2026-10-27, dal feature/phone-push)
 - ntfy "needs you" bildirimine Approve (Enter) / Reject (Esc) butonlari: tek kullanimlik token, `POST /api/push-action` (`phonePush.ts PushActionTokens`, `RemoteController.pushActions`). Spec `docs/orca-parity/remote-attention.md` sonu.
 - Telefon istemcisi: iPhone uygulamasi koprusu `src/remote/src/native.ts` (pano, ekran acik, haptik, basili tut-konus, Face ID, bilgisayarlar), Quick prompts, Copy text, Project > Review changes (`scm:diff` izin listesinde). `docs/remote-access.md` sonu. iOS tarafi `../termflow-lite-ios` (commit b764c6b).
 - iPhone widget/Live Activity/paylasim icin `GET /api/status` + `POST /api/type` (Enter'siz, kontrol karakterleri temiz), sayfadan `status` mesaji; `agentForProfile` artik Pick<> aliyor. iOS ca2dfdd.
 - verify yesil. Yayinlanmadi, surum artmadi. Gercek iPhone + ntfy ile denenmedi.
 
-## Onceki oturum (2026-10-26 aksam, dal feature/phone-push)
+## Daha onceki oturum (2026-10-26 aksam, dal feature/phone-push)
 - iPhone uygulamasi `../termflow-lite-ios` (xtool, WKWebView kabugu) + telefon bildirimi (ntfy, `termflow://tab/<id>`). Telefonda calistigi dogrulandi (2026-10-27).
 - Teshis notu: Claude Code fare raporlama ACMIYOR (`?1000/1002/1006` yok), imleci gizliyor (`?25l`) - sorun fare modu degil caret bulmaydi. Kalan sinir: cok satirli prompt kutusunda caret secimin fiziksel satirinda degilse `planSelectionEdit` hala reddediyor (ok sayisi kutu cercevesi yuzunden yanlis cikardi).
 

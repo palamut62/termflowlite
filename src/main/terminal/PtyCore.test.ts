@@ -71,6 +71,18 @@ describe('PtyCore lifecycle', () => {
     }
   })
 
+  it('reports the resolved startup folder when the tab was opened without one', () => {
+    const events: unknown[] = []
+    new PtyCore((event) => events.push(event)).create('t1', input)
+    expect(events).toContainEqual({ kind: 'cwd', ptyId: 't1', cwd: 'C:\\' })
+  })
+
+  it('stays quiet when the tab already knows its folder', () => {
+    const events: unknown[] = []
+    new PtyCore((event) => events.push(event)).create('t1', { ...input, cwd: 'C:\\repo' })
+    expect(events).toEqual([])
+  })
+
   it('rejects delayed agent input before spawning a shell', () => {
     const core = new PtyCore(() => undefined)
     expect(() => core.create('t1', { ...input, startupCommand: 'claude', launchCommand: 'review this repo' })).toThrow('never to a delayed shell')
