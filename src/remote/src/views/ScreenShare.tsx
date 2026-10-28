@@ -47,6 +47,8 @@ export function ScreenShare(): React.JSX.Element {
   const [password, setPassword] = useState('')
   const [immersive, setImmersive] = useState(false)
   const [viewOnly, setViewOnly] = useState(false)
+  /** Sticky: the phone keyboard stays up across taps on the desktop until it is turned off. */
+  const [typing, setTyping] = useState(false)
 
   const disconnect = useCallback((): void => {
     rfb.current?.disconnect()
@@ -107,6 +109,51 @@ export function ScreenShare(): React.JSX.Element {
   useEffect(() => {
     if (rfb.current) rfb.current.viewOnly = viewOnly
   }, [viewOnly])
+
+  /**
+   * Turning the phone, and the keyboard taking half of it, both change how much
+   * room the desktop has. noVNC only watches window resizes, which iOS does not
+   * fire for the keyboard, so the scale is asked for again on every change.
+   */
+  useEffect(() => {
+    if (state !== 'on') return
+    const vv = window.visualViewport
+    const rescale = (): void => {
+      if (rfb.current) rfb.current.scaleViewport = true
+    }
+    // Landscape is the shape of a desktop: give it the whole phone by itself.
+    const follow = (): void => {
+      rescale()
+      const landscape = (vv?.width ?? window.innerWidth) > (vv?.height ?? window.innerHeight)
+      setImmersive(landscape)
+    }
+    follow()
+    vv?.addEventListener('resize', follow)
+    window.addEventListener('resize', follow)
+    window.addEventListener('orientationchange', follow)
+    return () => {
+      vv?.removeEventListener('resize', follow)
+      window.removeEventListener('resize', follow)
+      window.removeEventListener('orientationchange', follow)
+    }
+  }, [state])
+
+  useEffect(() => {
+    if (state !== 'on') setTyping(false)
+  }, [state])
+
+  // Tapping the desktop steals focus from the key input; sticky mode takes it back.
+  useEffect(() => {
+    if (!typing || state !== 'on') return
+    keys.current?.focus()
+    const holdFocus = (): void => {
+      // After the tap has been delivered to the desktop, not before.
+      setTimeout(() => keys.current?.focus(), 0)
+    }
+    const node = holder.current
+    node?.addEventListener('pointerup', holdFocus)
+    return () => node?.removeEventListener('pointerup', holdFocus)
+  }, [typing, state])
 
   const sendPassword = (): void => {
     rfb.current?.sendCredentials({ password })
@@ -189,7 +236,19 @@ export function ScreenShare(): React.JSX.Element {
       )}
       {state === 'on' && (
         <div className="screen-bar">
-          <button className="btn" onClick={() => keys.current?.focus()} aria-label="Keyboard"><Keyboard size={18} /></button>
+          <button
+            className={typing ? 'btn active' : 'btn'}
+            aria-label="Keyboard"
+            aria-pressed={typing}
+            title={typing ? 'Keyboard stays open - tap to close it' : 'Type on the computer'}
+            onClick={() => {
+              if (typing) keys.current?.blur()
+              else keys.current?.focus()
+              setTyping(!typing)
+            }}
+          >
+            <Keyboard size={18} />
+          </button>
           <button className="btn" onClick={() => rfb.current?.sendCtrlAltDel()}>Ctrl+Alt+Del</button>
           <button
             className={viewOnly ? 'btn active' : 'btn'}

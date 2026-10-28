@@ -41,7 +41,8 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 
 ## Son oturum (2026-10-28, son arac: Claude Code, dal feature/phone-push)
 - **Ekran paylasimi (tam PC telefonda):** telefon istemcisine Screen sekmesi (noVNC), masaustunde Ayarlar > Remote Access > Screen (`remote.screen {enabled,port=5900}`). Yakalama/girdi TermFlow'a yazilmadi: bilgisayarda bir VNC servisi kosar, TermFlow boru (`screenBridge.ts`, `POST /api/screen-ticket` -> tek kullanimlik bilet -> `ws /vnc` -> `127.0.0.1:port`). Kilit ekrani/UAC bu yuzden calisir. Karar + akis `docs/remote-access.md` sonunda. verify yesil (8 yeni test).
-- Denenmedi: gercek VNC servisi kurulmadi, telefonda hic acilmadi. VNC parolasi saklanmaz, telefonda sorulur.
+- Ekran paylasimi gercek telefonda calisti (UltraVNC servis, 2026-10-28). Eklendi: telefon cevrilince yeniden olceklenme (noVNC yalniz pencere resize'ini dinliyor, iOS klavye/donme icin onu her zaman tetiklemiyor -> visualViewport + orientationchange), yatayda otomatik tam ekran, yapiskan klavye (PC'ye dokununca kapanmaz). VNC parolasi saklanmaz, telefonda sorulur.
+- Acik: PC'deki UltraVNC'de `LoopbackOnly=0` ve `HTTPConnect=1` - 5900 aga acik, 5800 dinliyor. Kullanici Settings'ten duzeltmeli.
 - Caret (yeni sekme) menusunden acilan sekmeler sidebar agacinda gorunmuyordu: renderer `cwd` vermedigi icin `tabPath` bos kaliyordu. `PtyCore.create` artik klasor verilmemisse cozulen cwd'yi bir kez `cwd` olayiyla bildiriyor (mevcut onCwd -> setTabCwd hatti, yeni IPC yok). 2 birim test eklendi.
 - verify yesil; Lite + Agent IDE 1.27.1 derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle denenmedi; surum artmadi, yayinlanmadi.
 - Not: SSH sekmeleri de artik yerel home projesi altinda gorunur (onceden hic gorunmuyordu); istenmezse ayrilabilir.
