@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.28.0 - 2026-10-28
+
+- Screen sharing: the phone shows your whole computer and controls it, the Windows sign-in screen and UAC prompts included. Touch moves the mouse, the phone keyboard types, and the bar has Ctrl+Alt+Del, watch only and full screen. Turn the phone sideways to fill its screen.
+- It needs a VNC server running as a service on the computer (UltraVNC or TightVNC). TermFlow reaches it on this computer only and passes it to a paired phone over Tailscale, so the VNC server never has to accept connections from the network. Turn it on in Settings > Remote Access > Screen; the VNC password is asked on the phone and is never stored.
+
+## 1.27.1 - 2026-10-24
+
+- Phone: a dropped connection is detected by a heartbeat and reconnects by itself; the settings sheets are easier to use on a phone, and the tab strip shows only the selected workspace's terminals.
+- Permission level menu on the status bar shield; tab scrollbar hidden; file paths with spaces are clickable; the Claude CLI update time is shown.
+
+## 1.27.0 - 2026-10-18
+
+- Background tasks: a Claude Code tab shows a small count when its background shell tasks or subagents have written output in the last 10 minutes. Click it to watch each one live in its own tab. In the Agent IDE the tab's right-click menu lists them too.
+- Subagents (the Task/Agent tool) are watched as readable lines: the prompt, what the agent said, each tool call with a short input, and each result.
+
+## 1.26.0 - 2026-10-17
+
+- Launch at startup: Settings > Terminal (and the phone's settings) can start TermFlow when you sign in to Windows.
+- Agent CLIs installed with npm (Claude Code, Codex, OpenCode, Gemini CLI, Qwen Code, Copilot CLI, Pi, Codebuff) update themselves in the background at start and once a day. Settings > Profiles shows each version and its state, and has Check for CLI updates now. Turn it off with Auto-update agent CLIs.
+- Antigravity (`agy`) is a built-in agent profile and appears in the New Tab menu when installed.
+- Several Claude accounts: Settings > Profiles > Add Claude account. Signed-in accounts are found by themselves, a tab can continue its session with another account, and an optional switch moves to the next account when a limit is hit.
+- New project in the New Tab menu: pick a parent folder and a name, TermFlow creates the folder and opens the agent or shell in it.
+- Administrator tabs from the phone: after one UAC approval on the PC, the phone can open an administrator terminal with a PIN.
+- Limits read like Claude Code: percent used, the 5-hour limit before the weekly one.
+- The phone interface has a Home screen, a workspace list and a terminal header with a neutral dark theme. The widget view takes its colours and window buttons from your theme, with the tab that needs you on top.
+- Settings: Profiles and Profile Health moved next to Providers.
+
 ## 1.25.0 - 2026-10-15
 
 - New worktree: one box takes a branch name, `#123` for a pull request, or a pull request or issue link. Advanced has a note, a parent worktree and sparse checkout (only the folders you list are checked out).

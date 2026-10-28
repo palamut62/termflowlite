@@ -138,6 +138,7 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
   const resumeSession = useTerminalStore((s) => s.tabs.find((t) => t.id === tabId)?.resumeSession)
   const launchCwd = useTerminalStore((s) => s.tabs.find((t) => t.id === tabId)?.launchCwd)
   const launchCommand = useTerminalStore((s) => s.tabs.find((t) => t.id === tabId)?.launchCommand)
+  const elevated = useTerminalStore((s) => s.tabs.find((t) => t.id === tabId)?.elevated)
   const model = useTerminalStore((s) => s.tabs.find((t) => t.id === tabId)?.model)
   const settings = useSettingsStore((s) => s.settings)
   const permissionMode = useTerminalStore((s) => s.tabs.find((t) => t.id === tabId)?.permissionMode) ?? settings.defaultAgentPermissionMode
@@ -442,7 +443,7 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
       createdPtys.add(tabId)
       // Eski cikti once basilir; canli cikti kuyrukta bekledigi icin sira bozulmaz.
       void restoreScrollback(term, tabId)
-        .then(() => window.termflow.pty.create(tabId, profileId, lastSizeRef.current.cols, lastSizeRef.current.rows, launchCwd, resumeSession, launchCommand, permissionMode, model))
+        .then(() => window.termflow.pty.create(tabId, profileId, lastSizeRef.current.cols, lastSizeRef.current.rows, launchCwd, resumeSession, launchCommand, permissionMode, model, elevated))
         .then(() => {
           if (disposed) return
           useHandoverStore.getState().started(tabId)

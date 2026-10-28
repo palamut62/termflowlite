@@ -5,7 +5,7 @@ import { JUMP_SOURCES, idleTabs, searchCommands, searchJump, type JumpCommand, t
 import { SECTIONS } from '../settings/Settings'
 import { isInside } from '../shells/ide/ideTreeModel'
 import { toggleUiMode } from '../shells/uiMode'
-import { addProject, saveIde } from '../shells/ide/ProjectTree'
+import { addProject, openProjectAt, saveIde } from '../shells/ide/ProjectTree'
 import { useTaskPaletteStore } from '../store/taskPaletteStore'
 import { useIdePageStore } from '../shells/ide/pages/idePageStore'
 import { pathLabel } from '../sessionRail'
@@ -225,8 +225,7 @@ function openWorktree(path: string): void {
   const store = useTerminalStore.getState()
   const tab = store.tabs.find((t) => isInside(t.worktree?.path || t.cwd || t.launchCwd || '', path))
   if (tab) { store.setActiveTab(tab.id); return }
-  const { settings, shells } = useSettingsStore.getState()
-  store.addTab(resolveDefaultProfileId(settings, shells), true, path)
+  openProjectAt(path)
 }
 
 const rightPanel = (rightTab: 'explorer' | 'agents' | 'scm' | 'checks') => (): void => saveIde({ rightOpen: true, rightTab })

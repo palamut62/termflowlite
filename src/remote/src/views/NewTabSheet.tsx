@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { agentForProfile } from '../../../shared/profiles'
 import type { AgentPermissionMode, AppSettings } from '../../../shared/types'
 import { client, errorText, useRemote } from '../store'
 import { launchOptions, type LaunchOption } from '../profiles'
-import { Select, Sheet } from '../ui'
+import { Select, Sheet, Toggle } from '../ui'
 
 const PERMISSIONS: { value: AgentPermissionMode; label: string }[] = [
   { value: 'safe', label: 'Safe' },
@@ -26,6 +26,11 @@ export function NewTabSheet({ onClose, initialCwd, launchCommand }: { onClose():
   const [cwd, setCwd] = useState(initialCwd ?? '')
   const [permission, setPermission] = useState<AgentPermissionMode>(settings?.defaultAgentPermissionMode ?? 'workspace')
   const [busy, setBusy] = useState<string | null>(null)
+  // Administrator tab: only offered once the PC set it up (Settings > Remote on the desktop).
+  const [adminReady, setAdminReady] = useState(false)
+  const [admin, setAdmin] = useState(false)
+  const [pin, setPin] = useState('')
+  useEffect(() => { void client().call<string>('elevation.status').then((s) => setAdminReady(s === 'on')).catch(() => undefined) }, [])
 
   const options = useMemo(() => (settings ? launchOptions(settings, shells) : []), [settings, shells])
   const groups = useMemo(() => {
@@ -36,6 +41,7 @@ export function NewTabSheet({ onClose, initialCwd, launchCommand }: { onClose():
   const folders = settings ? folderSuggestions(settings, tabs.map((t) => t.cwd)) : []
 
   const open = async (option: LaunchOption): Promise<void> => {
+    if (admin && !/^\d{6,12}$/.test(pin)) { toast('Enter the 6 to 12 digit administrator PIN.', 'error'); return }
     setBusy(option.id)
     try {
       const isAgent = settings ? !!agentForProfile(settings as AppSettings, option.id) : false
@@ -44,6 +50,7 @@ export function NewTabSheet({ onClose, initialCwd, launchCommand }: { onClose():
         cwd: cwd.trim() || undefined,
         launchCommand,
         permissionMode: isAgent ? permission : undefined,
+        ...(admin ? { elevated: true, pin } : {}),
         ...useRemote.getState().termSize
       })
       setCurrentTab(tabId)
@@ -83,6 +90,19 @@ export function NewTabSheet({ onClose, initialCwd, launchCommand }: { onClose():
         <span>Agent permissions</span>
         <Select<AgentPermissionMode> label="Agent permissions" value={permission} options={PERMISSIONS} onChange={setPermission} />
       </label>
+      {adminReady && (
+        <label className="field inline">
+          <span>Run as administrator</span>
+          <Toggle label="Run as administrator" checked={admin} onChange={setAdmin} />
+        </label>
+      )}
+      {admin && (
+        <label className="field">
+          <span>Administrator PIN (set on the PC)</span>
+          <input className="input mono" type="password" inputMode="numeric" autoComplete="off" maxLength={12}
+            value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
+        </label>
+      )}
       {groups.map(([group, items]) => (
         <section key={group} className="launch-group">
           <h3 className="group-title">{group}</h3>

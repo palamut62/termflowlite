@@ -176,12 +176,13 @@ test('status bar: keep awake, resource manager and a terminal port', async () =>
   await win.keyboard.press('Escape')
 
   await win.getByRole('button', { name: /Keep computer awake/ }).click()
-  await win.getByRole('menuitemcheckbox', { name: /^On/ }).click()
+  await win.getByRole('menuitemradio', { name: /^On/ }).click()
   await expect(win.getByRole('button', { name: 'Keep computer awake: on' })).toHaveClass(/ide-awake-on/)
 })
 
 test('create worktree: note and parent from Advanced nest the new card', async () => {
-  await win.getByRole('button', { name: 'New worktree', exact: true }).click()
+  await win.getByRole('button', { name: 'Application menu' }).click()
+  await win.getByRole('menuitem', { name: 'New Worktree...' }).click()
   await win.fill('#worktree-repo', join(folder, 'shop-api'))
   await expect(win.locator('.path-launch-hint').first()).toContainText('on main')
   // Bir kabuk sec: test gercek bir ajan baslatmasin.
@@ -243,7 +244,7 @@ test('settings open as a full page with groups, stats and a test notification', 
   await expect(settings).toHaveCount(0)
 })
 
-test('center pages: tasks, automations template, artifacts, mobile and the floating workspace', async () => {
+test('center pages: tasks, automations template, artifacts, mobile', async () => {
   await win.evaluate(() => { (document.querySelector('.terminal-host .xterm') as HTMLElement & { __mark?: number }).__mark = 77 })
   const nav = win.getByRole('navigation', { name: 'Agent IDE' })
 
@@ -270,25 +271,8 @@ test('center pages: tasks, automations template, artifacts, mobile and the float
   // Sayfalar terminali yeniden kurmaz.
   expect(await win.evaluate(() => (document.querySelector('.terminal-host .xterm') as HTMLElement & { __mark?: number }).__mark)).toBe(77)
 
-  await win.getByRole('button', { name: 'Open floating workspace' }).click()
-  await win.getByRole('textbox', { name: 'Floating workspace note' }).fill('remember the redirect')
-  await win.getByRole('button', { name: 'Minimize floating workspace' }).click()
-  await win.getByRole('button', { name: 'Open floating workspace' }).click()
-  await expect(win.getByRole('textbox', { name: 'Floating workspace note' })).toHaveValue('remember the redirect')
-
-  // A terminal lives in the panel, not in the main area; docking moves it back to the tabs.
-  const floating = win.getByRole('region', { name: 'Floating workspace' })
-  await floating.getByRole('button', { name: 'New floating terminal' }).click()
-  await expect(floating.locator('.terminal-host .xterm')).toBeVisible()
-  await expect(win.locator('.tab')).toHaveCount(2)
-  await expect(win.locator('.terminal-area .terminal-view')).toHaveCount(1)
-  await floating.getByRole('button', { name: 'Minimize floating workspace' }).click()
-  await win.getByRole('button', { name: 'Open floating workspace' }).click()
-  await floating.getByRole('radio', { name: 'Terminal' }).click()
-  await expect(floating.locator('.terminal-host .xterm')).toBeVisible()
-  await floating.getByRole('button', { name: 'Dock terminal to tabs' }).click()
-  await expect(floating.locator('.terminal-host')).toHaveCount(0)
-  await expect(win.locator('.terminal-area .terminal-view')).toHaveCount(2)
+  await expect(win.getByRole('button', { name: 'Open floating workspace' })).toHaveCount(0)
+  await expect(win.getByRole('region', { name: 'Floating workspace' })).toHaveCount(0)
 })
 
 test('review: a changed file opens as a diff, a line comment goes to the agent tab, notes persist', async () => {

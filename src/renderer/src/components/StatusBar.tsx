@@ -12,7 +12,9 @@ import { useTaskPaletteStore } from '../store/taskPaletteStore'
 import { useSavedCommandStore } from '../store/savedCommandStore'
 import { useAgentEventStore } from '../store/agentEventStore'
 import { initUpdateStatusBridge, shouldShowUpdateBadge, updateBadgeLabel, updateBadgeTitle, useUpdateStore } from '../store/updateStore'
-import { agentProfileOptions, switchActiveAgentProfile } from '../agentHandover'
+import { agentProfileOptions, switchActiveAgentProfile, switchActivePermissionMode } from '../agentHandover'
+import { IdeMenu, MenuItem, anchorOf, type MenuAnchor } from '../shells/ide/IdeMenu'
+import { useToastStore } from '../store/toastStore'
 import { OutputPulse } from './OutputPulse'
 import { useFilePanelStore } from '../store/filePanelStore'
 import { useStatsStore } from '../store/statsStore'
@@ -23,6 +25,11 @@ const PERMISSION_LABELS: Record<AgentPermissionMode, string> = {
   safe: 'Safe',
   workspace: 'Workspace',
   full: 'Full access'
+}
+const PERMISSION_HINTS: Record<AgentPermissionMode, string> = {
+  safe: 'read-only',
+  workspace: 'project + approvals',
+  full: 'no approvals'
 }
 
 const CONFIRM_RESET_MS = 6000
@@ -106,12 +113,31 @@ export function StatusBar(): React.JSX.Element {
   const [git, setGit] = useState<GitStatus | null>(null)
   const [project, setProject] = useState<ProjectInfo | null>(null)
   const [switchingProfile, setSwitchingProfile] = useState(false)
+  const [securityAnchor, setSecurityAnchor] = useState<MenuAnchor | null>(null)
+  const [applyingMode, setApplyingMode] = useState(false)
   const [profileSwitchError, setProfileSwitchError] = useState(false)
   const agentProfiles = useMemo(() => agentProfileOptions(settings), [settings])
   const activeAgent = active ? agentForProfile(settings, active.profileId) : null
   const permissionMode = active?.permissionMode ?? settings.defaultAgentPermissionMode
-  const cyclePermissionMode = (): void => {
-    useSettingsStore.getState().openSettings()
+  const choosePermissionMode = async (mode: AgentPermissionMode): Promise<void> => {
+    setSecurityAnchor(null)
+    if (mode === permissionMode) return
+    const label = PERMISSION_LABELS[mode]
+    const toDefault = async (note: string): Promise<void> => {
+      await useSettingsStore.getState().update({ defaultAgentPermissionMode: mode })
+      useToastStore.getState().show(note)
+    }
+    if (!active || !activeAgent) return toDefault(`New agent tabs start in ${label}.`)
+    setApplyingMode(true)
+    try {
+      const result = await switchActivePermissionMode(active, activeAgent, mode)
+      if (result === 'no-session') await toDefault(`No session to resume; new agent tabs start in ${label}.`)
+      else useToastStore.getState().show(`Session continues in ${label} in a new tab.`)
+    } catch {
+      useToastStore.getState().show('The permission level could not be changed.', 'error')
+    } finally {
+      setApplyingMode(false)
+    }
   }
   const changeAgentProfile = async (profileId: string): Promise<void> => {
     if (!active || !activeAgent || profileId === active.profileId) return
@@ -226,12 +252,31 @@ export function StatusBar(): React.JSX.Element {
       )}
       <button
         className={`status-action status-security status-security-${permissionMode}`}
-        onClick={cyclePermissionMode}
-        title={`Active session: ${PERMISSION_LABELS[permissionMode]}. Settings changes apply to new sessions.`}
+        onClick={(event) => setSecurityAnchor((current) => (current ? null : anchorOf(event.currentTarget)))}
+        disabled={applyingMode}
+        title={`Active session: ${PERMISSION_LABELS[permissionMode]}. Click to change the permission level.`}
         aria-label={`Agent security profile: ${PERMISSION_LABELS[permissionMode]}`}
+        aria-haspopup="menu"
       >
-        <ShieldCheck size={12} />{PERMISSION_LABELS[permissionMode]}
+        <ShieldCheck size={12} />{applyingMode ? 'Switching...' : PERMISSION_LABELS[permissionMode]}
       </button>
+      {securityAnchor && (
+        <IdeMenu anchor={securityAnchor} up label="Agent permission level" onClose={() => setSecurityAnchor(null)} width={300}>
+          <div className="ctx-menu-section" role="presentation">
+            {activeAgent ? 'Active agent session' : 'New agent tabs'}
+          </div>
+          {PERMISSION_MODES.map((mode) => (
+            <MenuItem key={mode} checked={mode === permissionMode} hint={PERMISSION_HINTS[mode]} onSelect={() => void choosePermissionMode(mode)}>
+              {PERMISSION_LABELS[mode]}
+            </MenuItem>
+          ))}
+          <p className="ide-awake-hint">
+            {activeAgent
+              ? 'The level is a launch argument, so the session continues in a new tab with the new level.'
+              : 'No agent tab is active; the level becomes the default for new agent tabs.'}
+          </p>
+        </IdeMenu>
+      )}
     </footer>
   )
 }

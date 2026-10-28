@@ -57,6 +57,12 @@ export const FALLBACK_MODELS: Record<DelegateAgentKind, OpenRouterModel[]> = {
   opencode: [],
   grok: [],
   codex: [],
+  agy: [],
+  gemini: [],
+  qwen: [],
+  copilot: [],
+  kimi: [],
+  droid: [],
   claude: ['haiku', 'sonnet', 'opus'].map((id) => model(id))
 }
 

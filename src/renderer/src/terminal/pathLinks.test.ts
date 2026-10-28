@@ -75,3 +75,22 @@ describe('extractPathCandidates', () => {
     expect(extractPathCandidates('..')).toEqual([{ value: '..', start: 1, end: 2 }])
   })
 })
+
+describe('extractPathCandidates - file names with spaces', () => {
+  it('finds a bare file name with spaces and a trailing extension', () => {
+    const text = '- Ovacık sulamasi_Risk_Analizi_Tablosu-2026-TOKI.xlsx'
+    expect(extractPathCandidates(text)).toContainEqual({
+      value: 'Ovacık sulamasi_Risk_Analizi_Tablosu-2026-TOKI.xlsx', start: 3, end: 53
+    })
+  })
+
+  it('finds a parenthesised name inside parentheses followed by a sentence dot', () => {
+    const text = 'report (Tunceli-Ovacık Sulaması RISK DEGERLENDIRMESI (13) (1).docx). Its dates'
+    const name = 'Tunceli-Ovacık Sulaması RISK DEGERLENDIRMESI (13) (1).docx'
+    expect(extractPathCandidates(text)).toContainEqual({ value: name, start: 9, end: 9 + name.length - 1 })
+  })
+
+  it('does not build multi-word candidates from version numbers', () => {
+    expect(extractPathCandidates('updated to v1.2 today').map((c) => c.value)).toEqual(['v1.2'])
+  })
+})

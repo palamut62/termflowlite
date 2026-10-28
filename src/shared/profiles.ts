@@ -32,13 +32,13 @@ export function commandWithModel(command: string | undefined, model: string | un
   return `${base} --model ${selected}`
 }
 
-export function providerFromProfileId(settings: AppSettings, profileId: string): ProviderProfile | undefined {
+export function providerFromProfileId(settings: Pick<AppSettings, 'providerProfiles'>, profileId: string): ProviderProfile | undefined {
   if (!profileId.startsWith('provider:')) return undefined
   return settings.providerProfiles.find((provider) => provider.id === profileId.slice('provider:'.length))
 }
 
 /** Bir profil/provider'ın çalıştırdığı native CLI ajanını tek yerde çözer. */
-export function agentForProfile(settings: AppSettings, profileId: string): AgentKind | null {
+export function agentForProfile(settings: Pick<AppSettings, 'providerProfiles' | 'profiles'>, profileId: string): AgentKind | null {
   const provider = providerFromProfileId(settings, profileId)
   if (provider) return agentKindForCommand(provider.command)
   const profile = mergeProfiles(settings.profiles).find((item) => item.id === profileId)
@@ -69,6 +69,7 @@ export const BUILTIN_PROFILES: readonly TerminalProfile[] = [
   { id: 'opencode', name: 'OpenCode', command: '', startupCommand: 'opencode', color: '#3fb950', fullPermissions: true, fullPermissionArgs: '--auto' },
   { id: 'ollama-serve', name: 'Ollama Serve', command: '', startupCommand: 'ollama serve', color: '#b48ead', fullPermissions: true, fullPermissionArgs: '' },
   // Tam yetki bayraklari kurulu CLI'larin `--help` ciktisindan (2026-10-14).
+  { id: 'agy', name: 'Antigravity', command: '', startupCommand: 'agy', color: '#6366f1', fullPermissions: true, fullPermissionArgs: '--dangerously-skip-permissions' },
   { id: 'gemini', name: 'Gemini CLI', command: '', startupCommand: 'gemini', color: '#4285f4', fullPermissions: true, fullPermissionArgs: '--yolo' },
   { id: 'qwen', name: 'Qwen Code', command: '', startupCommand: 'qwen', color: '#615ced', fullPermissions: true, fullPermissionArgs: '--yolo' },
   { id: 'copilot', name: 'GitHub Copilot CLI', command: '', startupCommand: 'copilot', color: '#8957e5', fullPermissions: true, fullPermissionArgs: '--allow-all' },
@@ -98,7 +99,8 @@ export function profileExecutable(profile: Pick<TerminalProfile, 'command' | 'st
  */
 export function availableProfiles(userProfiles: readonly TerminalProfile[], installed: readonly string[] | undefined): TerminalProfile[] {
   const builtinIds = new Set(BUILTIN_PROFILES.map((b) => b.id))
-  const own = new Set(userProfiles.filter((p) => !builtinIds.has(p.id)).map(profileExecutable))
+  // A profile with its own Claude config folder is a second account, not a replacement for the built-in one.
+  const own = new Set(userProfiles.filter((p) => !builtinIds.has(p.id) && !p.env?.CLAUDE_CONFIG_DIR?.trim()).map(profileExecutable))
   return mergeProfiles(userProfiles).filter((p) =>
     !builtinIds.has(p.id) || ((!installed || installed.includes(p.id)) && !own.has(profileExecutable(p))))
 }

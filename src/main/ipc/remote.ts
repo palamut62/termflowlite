@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc'
 import { isValidTabId, type RemoteCommandReply, type RemoteTab, type RemoteTabsState } from '../../shared/remote'
 import type { RemoteController } from '../remote/RemoteController'
+import { disableElevation, elevationStatus, enableElevation } from '../terminal/elevation'
 
 const ACTIVITIES = new Set(['running', 'waiting', 'unread', 'completed', 'error'])
 
@@ -42,6 +43,9 @@ export function registerRemoteIpc(controller: RemoteController): void {
   ipcMain.handle(IPC.REMOTE_PAIR, (_event, deviceId: unknown) =>
     controller.startPairing(typeof deviceId === 'string' && /^[0-9a-f]{16}$/.test(deviceId) ? deviceId : undefined))
   ipcMain.handle(IPC.REMOTE_PAIR_CANCEL, () => controller.cancelPairing())
+  ipcMain.handle(IPC.ELEVATION_STATUS, () => elevationStatus())
+  ipcMain.handle(IPC.ELEVATION_ENABLE, (_event, pin: unknown) => enableElevation(typeof pin === 'string' ? pin : ''))
+  ipcMain.handle(IPC.ELEVATION_DISABLE, () => disableElevation())
   ipcMain.handle(IPC.REMOTE_DEVICES, () => controller.listDevices())
   ipcMain.handle(IPC.REMOTE_REVOKE, (_event, deviceId: unknown) => {
     if (deviceId === null) controller.revoke(null)

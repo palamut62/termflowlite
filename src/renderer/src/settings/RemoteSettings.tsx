@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { QrCode, Smartphone, Trash2 } from 'lucide-react'
+import { Bell, Copy, Monitor, QrCode, ShieldCheck, Smartphone, Trash2 } from 'lucide-react'
 import type { RemoteDeviceInfo, RemotePairing, RemoteStatus } from '../../../shared/remote'
+import type { ElevationStatus, PhonePushSettings as PushSettings } from '../../../shared/types'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
-import { Field, NumberInput, Toggle } from './Settings'
+import { Field, NumberInput, TextInput, Toggle } from './Settings'
 
 function statusText(status: RemoteStatus | null): string {
   if (!status) return 'Loading...'
@@ -17,6 +18,154 @@ function statusText(status: RemoteStatus | null): string {
 }
 
 const date = (time: number): string => new Date(time).toLocaleString()
+const ipcError = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : fallback
+
+/** Agent alerts on the phone through ntfy, also when TermFlow Remote is closed (docs/orca-parity/remote-attention.md). */
+function PhonePushSettings(): React.JSX.Element {
+  const remote = useSettingsStore((s) => s.settings.remote)
+  const update = useSettingsStore((s) => s.update)
+  const toast = useToastStore((s) => s.show)
+  const push = remote.push
+  const [server, setServer] = useState(push.server)
+  const [testing, setTesting] = useState(false)
+  useEffect(() => setServer(push.server), [push.server])
+
+  const save = (next: Partial<PushSettings>): Promise<void> => update({ remote: { ...remote, push: { ...push, ...next } } })
+  const sendTest = async (): Promise<void> => {
+    setTesting(true)
+    const error = await window.termflow.alerts.testPhonePush()
+    setTesting(false)
+    toast(error ?? 'Test notification sent. Check your phone.', error ? 'error' : 'success')
+  }
+  const copyTopic = async (): Promise<void> => {
+    await window.termflow.clipboard.writeText(push.topic)
+    toast('Topic copied.', 'success')
+  }
+
+  return (
+    <>
+      <div className="settings-section-title"><Bell size={14} /> Phone notifications</div>
+      <p className="settings-note">
+        When an agent finishes, needs you or stops with an error while you are not looking, your phone gets a notification,
+        even when TermFlow Remote is closed. Install the free ntfy app, subscribe to the topic below on the same server;
+        tapping a notification opens that tab in the TermFlow iPhone app. Only the alert title and tab name are sent, never
+        terminal output. On a public server anyone who knows the topic can read these alerts, so keep it private.
+        "Needs you" alerts carry Approve (Enter) and Reject (Esc) buttons while Remote Access is on; each button works once,
+        for 10 minutes, and only from your Tailscale network.
+      </p>
+      <Field label="Enable phone notifications">
+        <Toggle checked={push.enabled} label="Enable phone notifications" onChange={(on) => void save({ enabled: on })} />
+      </Field>
+      {push.enabled && (
+        <>
+          <Field label="ntfy server" hint="https://ntfy.sh or your own ntfy server">
+            <span className="memory-inline">
+              <TextInput className="settings-input-wide" value={server} onChange={(e) => setServer(e.target.value)} />
+              <button className="settings-btn settings-btn-small" disabled={server === push.server} onClick={() => void save({ server })}>Apply</button>
+            </span>
+          </Field>
+          <Field label="Topic" hint="Subscribe to this topic in the ntfy app">
+            <span className="memory-inline">
+              <code>{push.topic}</code>
+              <button className="settings-btn settings-btn-small" onClick={() => void copyTopic()} aria-label="Copy topic"><Copy size={12} /> Copy</button>
+              <button className="settings-btn settings-btn-small" onClick={() => void save({ topic: '' })} title="Old subscriptions stop receiving alerts">New topic</button>
+              <button className="settings-btn settings-btn-small settings-btn-primary" disabled={testing} onClick={() => void sendTest()}>Send test</button>
+            </span>
+          </Field>
+        </>
+      )}
+    </>
+  )
+}
+
+/** Admin tabs opened from the phone: set up once here under UAC, then approved with a PIN on the phone. */
+function AdminTabsSettings(): React.JSX.Element | null {
+  const toast = useToastStore((s) => s.show)
+  const [status, setStatus] = useState<ElevationStatus | null>(null)
+  const [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => { void window.termflow.remote.elevationStatus().then(setStatus) }, [])
+  if (status === null || status === 'unsupported') return null
+
+  const run = async (action: () => Promise<void>, done: string): Promise<void> => {
+    setBusy(true)
+    try {
+      await action()
+      setPin('')
+      toast(done, 'success')
+    } catch (error) {
+      toast(ipcError(error, 'Windows did not finish the change.'), 'error')
+    } finally {
+      setStatus(await window.termflow.remote.elevationStatus())
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="settings-section-title"><ShieldCheck size={14} /> Administrator tabs from the phone</div>
+      <p className="settings-note">
+        Windows does not let any app click a UAC prompt, so this PC approves once: Windows asks for administrator rights
+        one time, then the phone can open an administrator terminal after you enter this PIN there. Without the PIN nothing
+        is elevated. Changing the PIN or turning this off asks for UAC again.
+      </p>
+      <Field label="Status" hint={status === 'on' ? 'On. On the phone: New tab > Run as administrator.' : 'Off'}>
+        {status === 'on' && <button className="settings-btn settings-btn-small settings-btn-danger" disabled={busy} onClick={() => void run(() => window.termflow.remote.disableElevation(), 'Administrator tabs turned off.')}>Turn off</button>}
+      </Field>
+      <Field label={status === 'on' ? 'New PIN' : 'PIN'} hint="6 to 12 digits; entered on the phone for every administrator tab">
+        <span className="memory-inline">
+          <input className="settings-input-narrow" type="password" inputMode="numeric" autoComplete="new-password" aria-label="Administrator PIN" maxLength={12}
+            value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
+          <button className="settings-btn settings-btn-small settings-btn-primary" disabled={busy || pin.length < 6}
+            onClick={() => void run(() => window.termflow.remote.enableElevation(pin), 'Administrator tabs are ready on the phone.')}>
+            {status === 'on' ? 'Change PIN' : 'Turn on'}
+          </button>
+        </span>
+      </Field>
+    </>
+  )
+}
+
+/**
+ * The whole desktop on the phone. TermFlow does not capture the screen itself:
+ * it pipes a paired phone to a VNC server running on this computer. That is the
+ * reason the sign-in screen and UAC prompts work - a VNC service runs with
+ * Windows' own rights, which this app does not have.
+ */
+function ScreenShareSettings(): React.JSX.Element {
+  const remote = useSettingsStore((s) => s.settings.remote)
+  const update = useSettingsStore((s) => s.update)
+  const screen = remote.screen
+  const [port, setPort] = useState(screen.port)
+  useEffect(() => setPort(screen.port), [screen.port])
+
+  const save = (next: Partial<typeof screen>): Promise<void> => update({ remote: { ...remote, screen: { ...screen, ...next } } })
+
+  return (
+    <>
+      <div className="settings-section-title"><Monitor size={14} /> Screen</div>
+      <p className="settings-note">
+        Shows this whole computer on the phone, in the TermFlow app's Screen tab, with touch as mouse and the phone
+        keyboard as keys - the sign-in screen and UAC prompts included. It needs a VNC server on this computer:
+        install UltraVNC or TightVNC <strong>as a service</strong>, give it a password, and leave it on its default
+        port. TermFlow only connects to it on this computer (127.0.0.1) and passes the bytes to the paired phone over
+        Tailscale, so the VNC server itself never has to accept connections from the network - keep it set to
+        loopback only if it offers the choice.
+      </p>
+      <Field label="Share the screen" hint={screen.enabled ? 'Paired phones can open the Screen tab' : 'Off: the Screen tab stays empty'}>
+        <Toggle checked={screen.enabled} label="Share the screen" onChange={(on) => void save({ enabled: on })} />
+      </Field>
+      <Field label="VNC port on this computer" hint="5900 is what UltraVNC and TightVNC use by default">
+        <span className="memory-inline">
+          <NumberInput value={port} min={1} max={65535} onChange={setPort} />
+          <button className="settings-btn settings-btn-small" disabled={port === screen.port} onClick={() => void save({ port })}>Apply</button>
+        </span>
+      </Field>
+    </>
+  )
+}
 
 export function RemoteSettings(): React.JSX.Element {
   const remote = useSettingsStore((s) => s.settings.remote)
@@ -81,7 +230,7 @@ export function RemoteSettings(): React.JSX.Element {
       setPairing(await window.termflow.remote.pair(deviceId))
       setNow(Date.now())
     } catch (error) {
-      toast(error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : 'Could not create a pairing code.')
+      toast(ipcError(error, 'Could not create a pairing code.'))
     }
   }
 
@@ -176,6 +325,9 @@ export function RemoteSettings(): React.JSX.Element {
           </div>
         )
         : <button className="settings-btn" onClick={() => setConfirmAll(true)}>Disconnect all...</button>)}
+      <AdminTabsSettings />
+      <ScreenShareSettings />
+      <PhonePushSettings />
     </div>
   )
 }

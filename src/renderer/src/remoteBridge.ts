@@ -37,7 +37,7 @@ export function runRemoteCommand(command: RemoteTabCommand): unknown {
   switch (command.kind) {
     case 'open':
       // Opened in the background so the desktop layout is left alone.
-      return terminals.addTab(command.profileId, false, command.cwd, command.launchCommand, command.permissionMode)
+      return terminals.addTab(command.profileId, false, command.cwd, command.launchCommand, command.permissionMode, undefined, command.elevated === true)
     case 'close':
       requireTab(command.tabId)
       terminals.closeTab(command.tabId)

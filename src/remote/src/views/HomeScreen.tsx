@@ -127,6 +127,7 @@ export function HomeScreen(): React.JSX.Element {
                     <span key={w.label} className="home-bar" title={`${Math.round(w.usedPercent)}% used`}>
                       <em>{w.label}</em>
                       <span className="home-track"><span className={`home-fill${w.usedPercent >= 95 ? ' bad' : w.usedPercent >= 80 ? ' warn' : ''}`} style={{ width: `${Math.min(100, Math.max(0, w.usedPercent))}%` }} /></span>
+                      <b>{Math.round(100 - Math.min(100, Math.max(0, w.usedPercent)))}% left</b>
                     </span>
                   ))}
                 </span>

@@ -1,13 +1,13 @@
 # TermFlow Lite - Durum
 
-guncel: 2026-10-17 | son arac: Claude Code (Opus 5.5) | dal: `feature/agent-ide` | surum 1.26.0
+guncel: 2026-10-28
 
 > Bu dosya projeye giren her yapay zeka aracinin ilk okudugu yerdir. Kisa tutulur (en fazla ~80 satir).
 > Kalici bilgi (mimari, kararlar, ayrintili gecmis) `PROJE-REHBER.md`'de (varsa) / README'de.
 
 ## Ne bu proje
 Minimal, hizli, cok ozellestirilebilir capraz platform (Windows/Linux) terminal; gelistiriciler ve CLI ajan kullanicilari icin.
-Stack: Electron (electron-vite), React, TypeScript, xterm.js, node-pty. Surum 1.24.2 (freeware, kapali kaynak).
+Stack: Electron (electron-vite), React, TypeScript, xterm.js, node-pty. Surum 1.28.0 (freeware, kapali kaynak).
 Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamut62/termflow-lite`. Site: termflowlite.lol (Vercel, `website/`).
 
 ## Calistir / test et
@@ -33,28 +33,44 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - [x] 1.26.0 (yayinlanmadi) IDE Orchestration: ajanlar isi baska ajanlara devreder (termflow-agents MCP, worktree + `deleg/` dali, Delegated paneli); spec `docs/agent-ide/orchestration.md`, 6/6 dilim
 - [x] 1.24.0 Orca paritesi (8 modul + agent-detect): yayinda, Release + verify-release yesil, bu PC'ye kuruldu, site `#agents` bolumu (EN/TR, `assets/agents.webp`) Vercel prod. Kalan Orca modulleri: worktree-note, agent-hibernate, agent-race, scheduled-prompts, remote-attention (`docs/orca-parity/`)
 
-## Son oturum (2026-10-17, Orchestration tamam)
-- Dilim 2-5: `orchestration/` (manager kuyrugu + OpenCode seri, yerel API + endpoint.json, termflow-agents MCP 6 arac, service: model listesi/limit raporu/Test), Ayarlar > Orchestration ve sag panel Delegated (yalniz IDE yerlesimi). Gorev dalina commit + cherry-pick; saglayici profilleri `claude -p` + env
-- Canli: MCP -> API -> OpenCode deepseek-v4.1-flash-free 44 sn $0, kontrol gecti, cherry-pick + discard; Claude (haiku) $0.04. Hata: Claude'un Bash kabugu claude.exe'den ~4 sn sonra kapanip worktree'yi kilitliyordu; Discard bekleyip elle bitirir. Birim 845, IDE E2E 20/20, Lite E2E 105/107 (2 kirik onceden: usage-meter, remote-scroll). IDE bu PC'ye kuruldu
+## Ek (2026-10-17)
+- **1.26.0 yayinda (2026-10-17):** Lite + Agent IDE Release ve verify yesil (run 39047141362, GitHub odeme sorunu cozuldu), site Vercel prod (indirme linkleri v1.26.0). Kural: her degisiklikte iki surum derlenir, yalniz Agent IDE sessiz kurulur
+- Orchestration iscileri: + agy, gemini, qwen, copilot, kimi, droid (duz metin cikti). Canli: agy gecti; gemini bu PC'de hesap/proje hatasi
+- Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
+- Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Onceki oturum (2026-10-17, Claude hesaplari + New project)
-- Claude hesap gecisi: Ayarlar > Profiles > "Add Claude account" (`CLAUDE_CONFIG_DIR` env'li profil; `src/main/claudeAccount.ts` projects/skills'i varsayilan hesaba junction'lar, dolu klasoru ezmez). Sekme sag tik > "Continue session with <hesap>": hook'tan gelen sessionId ile `--resume`, eski sekme kapanir. Giris her hesapta bir kez `/login`. Girisli hesaplar `.claude*/.claude.json` oauthAccount.emailAddress ile otomatik bulunur ve profil olarak eklenir (acilista, odakta, Ayarlar > Profiles > Claude accounts). Limit dolunca otomatik gecis: StopFailure hook (rate_limit/limit metni) -> `claudeFailover.ts onClaudeLimit`, ayar `autoSwitchClaudeAccount`; limitli hesap 5 saat atlanir. Gercek limit olayi dogrulanmadi. Elle denenmedi (gercek ikinci hesap yok); sessionId yoksa menu 'no session yet' der. Surum 1.26.0'da kaldi (yayinlanmadi)
-- Yeni sekme menusu > "New project...": ust klasor + proje adi + ajan/shell secilir, `src/main/projectCreate.ts` klasoru olusturur (bos mevcut klasor kullanilir, dolu reddedilir), sekme o klasorde acilir. `tabs/NewProjectModal.tsx`, IPC `project:create`. Birim test var, E2E ve elle deneme YOK, yayin/kurulum yapilmadi
+## Son oturum (2026-10-28, son arac: Claude Code, dal feature/phone-push)
+- Surum 1.28.0'a cikarildi, iki CHANGELOG'a ekran paylasimi yazildi. Tag ATILMADI: `npm run release:tag` temiz agac + iki CHANGELOG'da `## <surum>` ister, tag'i itince CI yayinlar.
+- **Ekran paylasimi (tam PC telefonda):** telefon istemcisine Screen sekmesi (noVNC), masaustunde Ayarlar > Remote Access > Screen (`remote.screen {enabled,port=5900}`). Yakalama/girdi TermFlow'a yazilmadi: bilgisayarda bir VNC servisi kosar, TermFlow boru (`screenBridge.ts`, `POST /api/screen-ticket` -> tek kullanimlik bilet -> `ws /vnc` -> `127.0.0.1:port`). Kilit ekrani/UAC bu yuzden calisir. Karar + akis `docs/remote-access.md` sonunda. verify yesil (8 yeni test).
+- Ekran paylasimi gercek telefonda calisti (UltraVNC servis, 2026-10-28). Eklendi: telefon cevrilince yeniden olceklenme (noVNC yalniz pencere resize'ini dinliyor, iOS klavye/donme icin onu her zaman tetiklemiyor -> visualViewport + orientationchange), yatayda otomatik tam ekran, yapiskan klavye (PC'ye dokununca kapanmaz). VNC parolasi saklanmaz, telefonda sorulur.
+- Acik: PC'deki UltraVNC'de `LoopbackOnly=0` ve `HTTPConnect=1` - 5900 aga acik, 5800 dinliyor. Kullanici Settings'ten duzeltmeli.
+- Caret (yeni sekme) menusunden acilan sekmeler sidebar agacinda gorunmuyordu: renderer `cwd` vermedigi icin `tabPath` bos kaliyordu. `PtyCore.create` artik klasor verilmemisse cozulen cwd'yi bir kez `cwd` olayiyla bildiriyor (mevcut onCwd -> setTabCwd hatti, yeni IPC yok). 2 birim test eklendi.
+- verify yesil; Lite + Agent IDE 1.27.1 derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle denenmedi; surum artmadi, yayinlanmadi.
+- Not: SSH sekmeleri de artik yerel home projesi altinda gorunur (onceden hic gorunmuyordu); istenmezse ayrilabilir.
+
+## Onceki oturum (2026-10-27, dal feature/phone-push)
+- ntfy "needs you" bildirimine Approve (Enter) / Reject (Esc) butonlari: tek kullanimlik token, `POST /api/push-action` (`phonePush.ts PushActionTokens`, `RemoteController.pushActions`). Spec `docs/orca-parity/remote-attention.md` sonu.
+- Telefon istemcisi: iPhone uygulamasi koprusu `src/remote/src/native.ts` (pano, ekran acik, haptik, basili tut-konus, Face ID, bilgisayarlar), Quick prompts, Copy text, Project > Review changes (`scm:diff` izin listesinde). `docs/remote-access.md` sonu. iOS tarafi `../termflow-lite-ios` (commit b764c6b).
+- iPhone widget/Live Activity/paylasim icin `GET /api/status` + `POST /api/type` (Enter'siz, kontrol karakterleri temiz), sayfadan `status` mesaji; `agentForProfile` artik Pick<> aliyor. iOS ca2dfdd.
+- verify yesil. Yayinlanmadi, surum artmadi. Gercek iPhone + ntfy ile denenmedi.
+
+## Daha onceki oturum (2026-10-26 aksam, dal feature/phone-push)
+- iPhone uygulamasi `../termflow-lite-ios` (xtool, WKWebView kabugu) + telefon bildirimi (ntfy, `termflow://tab/<id>`). Telefonda calistigi dogrulandi (2026-10-27).
+- Teshis notu: Claude Code fare raporlama ACMIYOR (`?1000/1002/1006` yok), imleci gizliyor (`?25l`) - sorun fare modu degil caret bulmaydi. Kalan sinir: cok satirli prompt kutusunda caret secimin fiziksel satirinda degilse `planSelectionEdit` hala reddediyor (ok sayisi kutu cercevesi yuzunden yanlis cikardi).
+
 
 ## Yarim kalan / siradaki adim
+- **Ekran paylasimi (2026-10-28):** PC'ye UltraVNC/TightVNC *servis* olarak kurulmali (parola + varsayilan port, mumkunse yalniz loopback), sonra Ayarlar > Remote Access > Screen acilip telefonda Screen sekmesi denenmeli: baglanma, parola, dokunma-fare, klavye tusu, Ctrl+Alt+Del, tam ekran, kilit ekraninda sifre girme. Yeni ozellik: surum artar, CI yayinlar
+- **Telefon bildirimi + iOS uygulamasi (2026-10-27):** paketle + kur (asagidaki kural), iPhone'a yeni iOS surumunu `xtool dev` ile kur, gercek telefonla dene: ntfy Approve/Reject, native tuslar, Face ID, Kisayol linkleri, Review changes. Sonra surum + CHANGELOG + yayin karari. Detay `docs/orca-parity/remote-attention.md`, `docs/remote-access.md`
+- **Telefondan dosya yukleme (2026-10-23, commitlendi, yayinlanmadi):** kod + birim test tamam (`remote/uploads.ts`, `POST /api/upload`, key bar ataç butonu; `docs/remote-access.md`). Gercek telefonla denenmedi; paketlenip kurulmadi (yeni ozellik: surum artar, CI yayinlar)
 - **Orchestration (IDE):** kod tamam, kurulu; varsayilan KAPALI. Gercek koordinatorden deneme kullanicida: Ayarlar > Orchestration > Enable + Connect (Claude/Codex/OpenCode MCP kaydi). Linux elle denenmedi; `opencode serve --attach` paralelligi olculmedi. Site bolumu yok
-- **Kirik E2E (onceden):** `e2e/usage-meter.spec.ts` hala '% left' bekliyor (62bb2de % kullanilan'a gecti); `e2e/remote-scroll.spec.ts` telefon Home ekranindan (9b3e651) once yazilmis
-- **1.25.0 yayini YARIM (2026-10-15):** main'e merge + `v1.25.0` tag'i itildi, ama Release run 38692776220'nin isleri hic baslamadi: GitHub "recent account payments have failed or your spending limit needs to be increased" (Billing & plans). Kullanici odemeyi duzeltince: `gh run rerun 38692776220 --repo palamut62/termflow-lite-source`
 - IDE yayin reposu acildi: PUBLIC `palamut62/termflow-agent-ide` (README + LICENSE). CI'da `release-ide-*` isleri ona yukler; `RELEASES_TOKEN` (fine-grained) bu repoya da Contents: write almali, kullanici token'a repoyu eklemeli, yoksa IDE isleri 403. IDE updater acildi, `.deb`/updater adi `termflow-agent-ide` (extraMetadata). IDE notlari `CHANGELOG-IDE.md`
-- Site: `#agent-ide` bolumu (EN/TR, `assets/agent-ide.webp`) hazir, Vercel'e DEPLOY EDILMEDI: IDE release'i cikinca `vercel --prod`
-- Yerel: Agent IDE 1.25.0 bu PC'ye kuruldu; Lite 1.25.0 exe hazir (`dist/`), Lite acik oldugu icin kurulmadi (kullanici onayi)
 - **Agent IDE:** Faz 0-4 + orchestration tamam (PRD 4.10/12b). Karar bekleyen: Faz 5 kalan (tarayici/design mode, CLI) ve Create worktree 'Run on WSL/SSH' (uzak calisma alani modeli gerekir). IDE Explorer sag tik menusu hala kapali
 - E2E IDE review testi yuk altinda bir kez kirildi (worktree listesi yuklenmedi), tekrarda 3/3 gecti
 - Memory guncelleme sikligi (Ayarlar > Memory > Update: saatlik/gunluk/haftalik, varsayilan saatlik; zamani gelince yalniz yeni/degisen session analiz edilir, yoksa model cagrilmaz, onceki kullanim bilgisi korunur). Surum 1.24.0 kaldi, yerel kurulum
 - Elle dogrulanmadi: Windows gorev cubugu rozeti/flashFrame, gercek sistem bildirimi; Cursor Agent/Amp/Aider/Crush bayraklari (kurulu degil)
 - Remote Access gercek telefonla (iOS Safari + Android Chrome) denenmeli: Windows Guvenlik Duvari izni, yazilim klavyesi/visualViewport, iOS'ta localStorage silinmesi (ana ekrana ekleyince kalici)
-- 1.22.0 yayinda (2026-10-09): Release + verify-release yesil, bu PC'ye yerel derleme sessiz kuruldu. iPhone ana ekran uygulamasinda 'Scan QR code' / Reconnect gercek telefonla denenmeli
-- 1.23.0 yayinda (2026-10-09): Release + verify-release yesil, bu PC'ye kuruldu. Voice Input gercek sesle denenmedi: OpenRouter'a kredi eklenince Ayarlar > Voice > Test ve Space basili tut ile denenmeli
+- 1.22.0 / 1.23.0 yayinda (2026-10-09), bu PC'ye kuruldu. Elle denenmeli: iPhone ana ekran uygulamasinda 'Scan QR code' / Reconnect (gercek telefon); Voice Input gercek sesle (OpenRouter'a kredi eklenince Ayarlar > Voice > Test + Space basili tut)
 - Gercek ajan kaydi (Memory Connect) yalniz testlerde mock'landi; kurulu surumle Claude/Codex/OpenCode'da elle denenmeli
 
 ## Acik sorunlar / bilinen sinirlar

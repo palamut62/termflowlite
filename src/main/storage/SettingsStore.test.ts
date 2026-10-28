@@ -156,3 +156,20 @@ describe('normalizeWorktreeMeta', () => {
     expect(normalizeWorktreeMeta([])).toEqual({})
   })
 })
+
+describe('phone push settings', () => {
+  it('creates a topic when turned on and keeps it afterwards', () => {
+    const store = new SettingsStore(file())
+    expect(store.get().remote.push).toEqual({ enabled: false, server: 'https://ntfy.sh', topic: '' })
+    const on = store.update({ remote: { ...store.get().remote, push: { enabled: true, server: 'https://ntfy.sh', topic: '' } } })
+    expect(on.remote.push.topic).toMatch(/^termflow-/)
+    const again = store.update({ remote: { ...on.remote, port: 47322 } })
+    expect(again.remote.push.topic).toBe(on.remote.push.topic)
+  })
+
+  it('falls back to the default server for a bad URL and drops a bad topic', () => {
+    const store = new SettingsStore(file())
+    const next = store.update({ remote: { ...store.get().remote, push: { enabled: false, server: 'javascript:alert(1)', topic: 'x' } } })
+    expect(next.remote.push).toEqual({ enabled: false, server: 'https://ntfy.sh', topic: '' })
+  })
+})

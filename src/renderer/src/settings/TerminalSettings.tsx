@@ -205,6 +205,13 @@ export function TerminalSettings(): React.JSX.Element {
             label="Resume agent conversations"
           />
         </Field>
+        <Field label="Launch at Startup" hint="Start TermFlow automatically when you sign in to Windows (installed app only).">
+          <Toggle
+            checked={settings.launchAtLogin}
+            onChange={(v) => void update({ launchAtLogin: v })}
+            label="Launch at startup"
+          />
+        </Field>
         <Field
           label="Close to Tray"
           hint="Closing the window keeps the app running in the system tray; use Quit in the tray menu to exit."

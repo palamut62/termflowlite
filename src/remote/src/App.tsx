@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Bot, Camera, FolderGit2, House, QrCode, Settings as SettingsIcon, SquareTerminal, WifiOff } from 'lucide-react'
+import { Bot, Camera, FolderGit2, House, Monitor, QrCode, Settings as SettingsIcon, SquareTerminal, WifiOff } from 'lucide-react'
 import { isLightColor } from '../../renderer/src/backdrop'
 import { resolveTheme } from '../../renderer/src/themes/themes'
+import { agentForProfile } from '../../shared/profiles'
 import { RemoteClient, loadToken, pairWithCode, saveToken } from './client'
+import { HAPTIC_GAP_MS, finishedHaptic, hasNative, postNative, type ActivitySeen } from './native'
 import { extractPairCode, readQrFromPhoto } from './qr'
 import { useRemote, type Screen } from './store'
 import { Toasts } from './ui'
@@ -11,6 +13,7 @@ import { AgentsScreen } from './views/AgentsScreen'
 import { ProjectScreen } from './views/ProjectScreen'
 import { SettingsScreen } from './views/SettingsScreen'
 import { HomeScreen } from './views/HomeScreen'
+import { ScreenShare } from './views/ScreenShare'
 import { WorkspacesScreen } from './views/WorkspacesScreen'
 
 // Settings sits behind the gear in the header (Orca Mobile); the bar keeps the four places you work in.
@@ -18,16 +21,20 @@ const NAV: { id: Screen; label: string; icon: React.JSX.Element }[] = [
   { id: 'home', label: 'Home', icon: <House size={20} /> },
   { id: 'terminal', label: 'Terminal', icon: <SquareTerminal size={20} /> },
   { id: 'agents', label: 'Agents', icon: <Bot size={20} /> },
-  { id: 'project', label: 'Project', icon: <FolderGit2 size={20} /> }
+  { id: 'project', label: 'Project', icon: <FolderGit2 size={20} /> },
+  { id: 'desktop', label: 'Screen', icon: <Monitor size={20} /> }
 ]
 
-/** Reads a one-time code from #pair=..., removing it from the address bar right away. */
-function takePairCode(): string | null {
-  const match = /(?:^#|&)pair=([A-Za-z0-9_-]{6,100})/.exec(location.hash)
+/** Reads a one-time #name=value, removing it from the address bar right away. */
+function takeHashValue(name: 'pair' | 'tab', pattern: RegExp): string | null {
+  const match = new RegExp(`(?:^#|&)${name}=(${pattern.source})`).exec(location.hash)
   if (!match) return null
   history.replaceState(null, '', location.pathname)
   return match[1]
 }
+const takePairCode = (): string | null => takeHashValue('pair', /[A-Za-z0-9_-]{6,100}/)
+/** #tab=<id>: the iPhone app opens a tab from a tapped phone notification. */
+const takeTabLink = (): string | null => takeHashValue('tab', /[A-Za-z0-9_-]{1,100}/)
 
 function PairScreen({ error, busy, onCode }: { error: string | null; busy: boolean; onCode(code: string): void }): React.JSX.Element {
   const [code, setCode] = useState('')
@@ -108,16 +115,54 @@ function useViewportHeight(): void {
   useEffect(() => {
     const vv = window.visualViewport
     const apply = (): void => {
-      document.documentElement.style.setProperty('--app-height', `${Math.round(vv?.height ?? window.innerHeight)}px`)
+      const style = document.documentElement.style
+      style.setProperty('--app-height', `${Math.round(vv?.height ?? window.innerHeight)}px`)
+      // iOS scrolls the visual viewport over the page when the keyboard opens; sheets follow it.
+      style.setProperty('--vv-top', `${Math.round(vv?.offsetTop ?? 0)}px`)
     }
     apply()
     vv?.addEventListener('resize', apply)
+    vv?.addEventListener('scroll', apply)
     window.addEventListener('resize', apply)
     return () => {
       vv?.removeEventListener('resize', apply)
+      vv?.removeEventListener('scroll', apply)
       window.removeEventListener('resize', apply)
     }
   }, [])
+}
+
+/**
+ * iPhone app only: keep the screen on while an agent works, a haptic tap when one finishes or
+ * needs you (while you look at the app), and the tab summary for the widget and Live Activity.
+ */
+function useNativeSignals(): void {
+  const tabs = useRemote((s) => s.tabs)
+  const connection = useRemote((s) => s.connection)
+  const seen = useRef(new Map<string, ActivitySeen>())
+  const lastHaptic = useRef(0)
+  const awake = connection === 'online' && tabs.some((t) => t.activity === 'running')
+
+  useEffect(() => {
+    if (hasNative()) postNative({ type: 'awake', on: awake })
+  }, [awake])
+
+  useEffect(() => {
+    const now = Date.now()
+    const result = finishedHaptic(seen.current, tabs, now)
+    seen.current = result.seen
+    if (!result.kind || !hasNative() || document.visibilityState !== 'visible' || now - lastHaptic.current < HAPTIC_GAP_MS) return
+    lastHaptic.current = now
+    postNative({ type: 'haptic', kind: result.kind })
+  }, [tabs])
+
+  const computer = useRemote((s) => s.computer)
+  const settings = useRemote((s) => s.settings)
+  useEffect(() => {
+    if (!hasNative() || connection !== 'online' || !settings) return
+    const agentOf = (profileId: string): boolean => agentForProfile(settings, profileId) !== null
+    postNative({ type: 'status', computer, tabs: tabs.map(({ id, title, activity, profileId }) => ({ id, title, activity, agent: agentOf(profileId) })) })
+  }, [tabs, computer, connection, settings])
 }
 
 /** The phone chrome takes the light/dark tone of the desktop terminal theme. */
@@ -142,6 +187,7 @@ export function App(): React.JSX.Element {
   const attach = useRemote((s) => s.attach)
   useViewportHeight()
   useDesktopTone()
+  useNativeSignals()
 
   const pairCode = useCallback((code: string): void => {
     setPairing(true)
@@ -166,6 +212,16 @@ export function App(): React.JSX.Element {
     window.addEventListener('hashchange', tryPair)
     return () => window.removeEventListener('hashchange', tryPair)
   }, [pairCode])
+
+  useEffect(() => {
+    const openLinkedTab = (): void => {
+      const tabId = takeTabLink()
+      if (tabId) useRemote.getState().setCurrentTab(tabId)
+    }
+    openLinkedTab()
+    window.addEventListener('hashchange', openLinkedTab)
+    return () => window.removeEventListener('hashchange', openLinkedTab)
+  }, [])
 
   useEffect(() => {
     if (!token) return
@@ -215,6 +271,7 @@ export function App(): React.JSX.Element {
         {screen === 'home' && <div className="screen scroll"><HomeScreen /></div>}
         {screen === 'agents' && <div className="screen scroll"><AgentsScreen /></div>}
         {screen === 'project' && <div className="screen scroll"><ProjectScreen /></div>}
+        {screen === 'desktop' && <div className="screen"><ScreenShare /></div>}
         {screen === 'settings' && <div className="screen scroll"><SettingsScreen /></div>}
       </main>
       <nav className="bottom-nav" aria-label="Sections">

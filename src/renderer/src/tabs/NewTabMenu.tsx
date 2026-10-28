@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FolderOpen, GitBranch, Github, Settings as SettingsIcon } from 'lucide-react'
+import { FolderOpen, FolderPlus, GitBranch, Github, Settings as SettingsIcon } from 'lucide-react'
 import { availableProfiles, providerProfileId, sshProfileId } from '../../../shared/profiles'
 import { sshTarget } from '../../../shared/sshArgs'
 import { resolveDefaultProfileId, useSettingsStore } from '../store/settingsStore'
@@ -13,6 +13,8 @@ interface NewTabMenuProps {
   /** Called after a row was picked or when the menu should close itself. */
   onClose: () => void
   onOpenAtPath: () => void
+  /** Opens the dialog that creates a project folder and starts an agent in it. */
+  onOpenNewProject: () => void
   /** Opens the dialog that starts a session in its own git worktree. */
   onOpenWorktree: () => void
   /** Opens the GitHub panel (pull requests and repositories). */
@@ -29,7 +31,7 @@ const ANCHOR_GAP = 4
  * ekran koordinatlarından fixed konumlandırılır (TerminalContextMenu ile aynı
  * measure-after-paint + viewport clamp deseni). Closes on outside click / Escape.
  */
-export function NewTabMenu({ anchor, onClose, onOpenAtPath, onOpenWorktree, onOpenGithub }: NewTabMenuProps): React.JSX.Element {
+export function NewTabMenu({ anchor, onClose, onOpenAtPath, onOpenNewProject, onOpenWorktree, onOpenGithub }: NewTabMenuProps): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
   const filterRef = useRef<HTMLInputElement>(null)
   const allShells = useSettingsStore((s) => s.shells)
@@ -130,6 +132,10 @@ export function NewTabMenu({ anchor, onClose, onOpenAtPath, onOpenWorktree, onOp
       <button className="menu-item" role="menuitem" onClick={onOpenAtPath}>
         <FolderOpen size={14} />
         <span className="menu-item-label">Open at folder...</span>
+      </button>
+      <button className="menu-item" role="menuitem" onClick={onOpenNewProject}>
+        <FolderPlus size={14} />
+        <span className="menu-item-label">New project...</span>
       </button>
       <button className="menu-item" role="menuitem" onClick={onOpenWorktree}>
         <GitBranch size={14} />

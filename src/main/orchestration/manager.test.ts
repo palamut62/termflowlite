@@ -20,7 +20,7 @@ describe('listTargets / resolveTarget', () => {
 
   it('lists built-in agents plus claude-based provider profiles only', () => {
     const targets = listTargets(ctx(settingsWith({}, [DEEPSEEK, OLLAMA])))
-    expect(targets.map((t) => t.id)).toEqual(['opencode', 'codex', 'grok', 'claude', 'provider:deepseek'])
+    expect(targets.map((t) => t.id)).toEqual(['opencode', 'codex', 'grok', 'claude', 'agy', 'gemini', 'qwen', 'copilot', 'kimi', 'droid', 'provider:deepseek'])
     expect(targets.find((t) => t.id === 'codex')?.installed).toBe(false)
     expect(targets.find((t) => t.id === 'opencode')?.model).toBe('opencode/deepseek-v4.1-flash-free')
     expect(targets.at(-1)).toMatchObject({ agent: 'claude', model: 'deepseek-v4-pro', hasCredential: true, providerId: 'deepseek' })
@@ -30,7 +30,7 @@ describe('listTargets / resolveTarget', () => {
     const settings = settingsWith({ targets: { grok: { enabled: false, model: '' } } })
     expect(resolveTarget(ctx(settings), 'codex', undefined, () => undefined)).toEqual({ error: 'Codex CLI is not installed on this computer.' })
     expect(resolveTarget(ctx(settings), 'grok', undefined, () => undefined)).toEqual({ error: 'Grok is turned off in TermFlow Settings > Orchestration.' })
-    expect(resolveTarget(ctx(settings), 'gemini', undefined, () => undefined)).toMatchObject({ error: expect.stringContaining('Unknown agent') })
+    expect(resolveTarget(ctx(settings), 'aider', undefined, () => undefined)).toMatchObject({ error: expect.stringContaining('Unknown agent') })
   })
 
   it('passes a provider profile through env and never as an argument', () => {

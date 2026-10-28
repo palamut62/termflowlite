@@ -3,14 +3,18 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
-import { ArrowDown, ArrowLeft, ChevronLeft, ArrowRight, ArrowUp, CornerDownLeft, Keyboard, Minus, Plus, Send, Smartphone, SquareTerminal } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ChevronLeft, ArrowRight, ArrowUp, ClipboardPaste, CornerDownLeft, Keyboard, Mic, Minus, Paperclip, Plus, Send, Smartphone, SquareTerminal, Zap } from 'lucide-react'
 import { resolveTheme } from '../../../renderer/src/themes/themes'
 import type { RemoteTab, ServerMessage } from '../../../shared/remote'
 import { client, errorText, useRemote } from '../store'
+import { uploadFile } from '../client'
 import { profileColor } from '../profiles'
 import { Confirm, Empty, Sheet, TextField } from '../ui'
 import { NewTabSheet } from './NewTabSheet'
+import { workspaceKey } from './WorkspacesScreen'
 import { attachPhoneInput } from '../phoneInput'
+import { copyText, hasNative, onNative, postNative } from '../native'
+import { SnippetsSheet } from './SnippetsSheet'
 
 const FONT_KEY = 'termflow.remote.fontSize'
 const FIT_KEY = 'termflow.remote.fitPhone'
@@ -49,6 +53,8 @@ export function TerminalScreen(): React.JSX.Element {
   const connection = useRemote((s) => s.connection)
   const settings = useRemote((s) => s.settings)
   const currentTab = tabs.find((t) => t.id === currentTabId)
+  // Only the selected workspace's tabs are listed, so input cannot land in another project's terminal.
+  const workspaceTabs = currentTab ? tabs.filter((t) => workspaceKey(t) === workspaceKey(currentTab)) : tabs
   const workspaceName = currentTab?.worktree?.branch || (currentTab?.cwd ?? '').split(/[\\/]/).filter(Boolean).pop() || 'Terminal'
   const shells = useRemote((s) => s.shells)
   const toast = useRemote((s) => s.toast)
@@ -79,6 +85,12 @@ export function TerminalScreen(): React.JSX.Element {
   const [renaming, setRenaming] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [compose, setCompose] = useState('')
+  const [snippetsOpen, setSnippetsOpen] = useState(false)
+  /** Terminal text captured when the copy sheet opened; output arriving later must not move the selection. */
+  const [copyShot, setCopyShot] = useState<string | null>(null)
+  /** Live speech from the iPhone app while the mic key is held. */
+  const [dictation, setDictation] = useState<string | null>(null)
+  const native = hasNative()
 
   const current = tabs.find((t) => t.id === currentTabId) ?? null
 
@@ -102,6 +114,26 @@ export function TerminalScreen(): React.JSX.Element {
     }
     if (!useRemote.getState().client?.send({ t: 'input', tabId, data: out })) toast('Not connected to the desktop.', 'error')
   }, [toast])
+
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  /** Files go to the computer; their paths are typed into the terminal so an agent can read them. */
+  const upload = useCallback(async (files: File[]): Promise<void> => {
+    setUploading(true)
+    const paths: string[] = []
+    for (const file of files) {
+      try {
+        paths.push(await uploadFile(file))
+      } catch (error) {
+        toast(`${file.name}: ${errorText(error)}`, 'error')
+      }
+    }
+    setUploading(false)
+    if (paths.length === 0) return
+    sendInput(paths.map((p) => (/\s/.test(p) ? `"${p}"` : p)).join(' ') + ' ', true)
+    toast(paths.length === 1 ? 'File sent to the computer.' : `${paths.length} files sent to the computer.`)
+  }, [sendInput, toast])
 
   // ---- One xterm for the whole session; tabs swap their content into it ----
   useEffect(() => {
@@ -315,12 +347,52 @@ export function TerminalScreen(): React.JSX.Element {
     sendInput(app ? `\x1bO${key}` : `\x1b[${key}`, true)
   }
 
-  const submitCompose = (): void => {
-    const text = compose.replace(/\r?\n/g, '\r')
+  /** A prompt for the current tab; Enter goes separately so agents do not take it as pasted text. */
+  const sendText = useCallback((value: string, enter: boolean): void => {
+    const text = value.replace(/\r?\n/g, '\r')
     // Bracketed paste (when the program asked for it) keeps a multi-line prompt in one block.
     if (text) sendInput(termRef.current?.modes.bracketedPasteMode ? `\x1b[200~${text}\x1b[201~` : text, true)
-    sendInput('\r', true)
+    if (enter) sendInput('\r', true)
+  }, [sendInput])
+
+  const submitCompose = (): void => {
+    sendText(compose, true)
     setCompose('')
+  }
+
+  // iPhone app: Shortcut text, pasted text and dictation land here.
+  useEffect(() => onNative((event) => {
+    if (event.type === 'info') return
+    if (event.type === 'notice') {
+      toast(event.text, 'error')
+      return
+    }
+    if (event.type === 'dictation') {
+      setDictation(event.state === 'listening' || event.state === 'partial' ? event.text : null)
+      if (event.state === 'error') toast(event.text || 'Dictation failed.', 'error')
+      if (event.state !== 'final' || !event.text.trim()) return
+    }
+    useRemote.getState().setScreen('terminal')
+    if (!tabRef.current) {
+      toast('Open a tab first.', 'error')
+      return
+    }
+    if (event.type === 'text') {
+      sendText(event.text, event.enter)
+      return
+    }
+    // Dictated text waits in the message box so it can be checked before sending.
+    liveRef.current?.blur()
+    setCompose((prev) => (prev ? `${prev} ${event.text}` : event.text))
+  }), [sendText, toast])
+
+  /** Text of the last screens for the copy sheet; selecting inside xterm is clumsy on a phone. */
+  const screenText = (): string => {
+    const buffer = termRef.current?.buffer.active
+    if (!buffer) return ''
+    const lines: string[] = []
+    for (let i = Math.max(0, buffer.length - 300); i < buffer.length; i++) lines.push(buffer.getLine(i)?.translateToString(true) ?? '')
+    return lines.join('\n').trimEnd()
   }
 
   const run = async (method: string, params: object, done?: string): Promise<void> => {
@@ -338,11 +410,11 @@ export function TerminalScreen(): React.JSX.Element {
         <button className="ws-back" onClick={() => useRemote.getState().setScreen('workspaces')} aria-label="Back to workspaces"><ChevronLeft size={22} /></button>
         <span className="ws-title">
           <strong>{workspaceName}</strong>
-          <span><i className={`home-dot ${connection}`} />{tabs.length} tab{tabs.length === 1 ? '' : 's'}</span>
+          <span><i className={`home-dot ${connection}`} />{workspaceTabs.length} tab{workspaceTabs.length === 1 ? '' : 's'}</span>
         </span>
       </div>
       <div className="tab-strip" role="tablist" aria-label="Desktop tabs">
-        {tabs.map((tab) => (
+        {workspaceTabs.map((tab) => (
           <button
             key={tab.id}
             role="tab"
@@ -386,6 +458,7 @@ export function TerminalScreen(): React.JSX.Element {
             </Empty>
           </div>
         )}
+        {dictation !== null && <div className="term-banner dictation"><Mic size={14} /> {dictation || 'Listening...'}</div>}
         {connection !== 'online' && current && (
           <div className="term-banner">{connection === 'connecting' ? 'Connecting...' : 'Offline. Reconnecting...'}</div>
         )}
@@ -400,6 +473,31 @@ export function TerminalScreen(): React.JSX.Element {
       {/* Pressing a key must not take focus from the live field, or the keyboard would close. */}
       <div className="keybar" role="toolbar" aria-label="Special keys" onPointerDown={(e) => e.preventDefault()}>
         <button className={keyboardOpen ? 'key on' : 'key'} onClick={toggleKeyboard} aria-label={keyboardOpen ? 'Hide keyboard' : 'Show keyboard'} aria-pressed={keyboardOpen}><Keyboard size={16} /></button>
+        <button className="key" onClick={() => fileRef.current?.click()} disabled={!current || uploading} aria-label="Upload files" title="Send files from this phone to the computer"><Paperclip size={16} /></button>
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? [])
+            e.target.value = ''
+            if (files.length) void upload(files)
+          }}
+        />
+        <button className="key" onClick={() => setSnippetsOpen(true)} disabled={!current} aria-label="Quick prompts" title="Saved prompts"><Zap size={16} /></button>
+        {native && <button className="key" onClick={() => postNative({ type: 'paste' })} disabled={!current} aria-label="Paste" title="Paste from the iPhone clipboard"><ClipboardPaste size={16} /></button>}
+        {native && (
+          <button
+            className={dictation !== null ? 'key on' : 'key'}
+            disabled={!current}
+            aria-label="Hold to dictate"
+            title="Hold and speak; release to put the text in the message box"
+            onPointerDown={() => postNative({ type: 'dictate', on: true })}
+            onPointerUp={() => postNative({ type: 'dictate', on: false })}
+            onPointerCancel={() => postNative({ type: 'dictate', on: false })}
+          ><Mic size={16} /></button>
+        )}
         <button className={fitPhone ? 'key on' : 'key'} onClick={toggleFit} aria-label="Fit to phone" aria-pressed={fitPhone} title="Fit to phone: resize the terminal to this screen while you watch it"><Smartphone size={16} /> Fit</button>
         <button className="key" onClick={() => sendInput('\x1b', true)}>Esc</button>
         <button className="key" onClick={() => sendInput('\t', true)}>Tab</button>
@@ -444,6 +542,10 @@ export function TerminalScreen(): React.JSX.Element {
       )}
 
       {newTabOpen && <NewTabSheet onClose={() => setNewTabOpen(false)} />}
+      {snippetsOpen && current && (
+        <SnippetsSheet target={current.title} onClose={() => setSnippetsOpen(false)} onSend={(text) => { sendText(text, true); setSnippetsOpen(false) }} />
+      )}
+      {copyShot !== null && <CopySheet text={copyShot} onClose={() => setCopyShot(null)} />}
 
       {menuOpen && current && (
         <Sheet title={current.title} onClose={() => { setMenuOpen(false); setRenaming(false) }}>
@@ -463,6 +565,7 @@ export function TerminalScreen(): React.JSX.Element {
               <div className="menu-list">
                 <button className="menu-item" onClick={() => setRenaming(true)}>Rename</button>
                 <button className="menu-item" onClick={() => { setMenuOpen(false); void run('tab.focus', { tabId: current.id }, 'Shown on the desktop.') }}>Show on desktop</button>
+                <button className="menu-item" onClick={() => { setMenuOpen(false); setCopyShot(screenText()) }}>Copy text</button>
                 <button className="menu-item" onClick={() => { setMenuOpen(false); void run('tab.restart', { tabId: current.id }) }}>Restart</button>
                 {!fitPhone && (
                   <div className="menu-item font-size">
@@ -498,5 +601,19 @@ export function TerminalScreen(): React.JSX.Element {
         />
       )}
     </div>
+  )
+}
+
+/** The terminal text as plain, selectable text: pick a part with the iOS handles or copy all. */
+function CopySheet({ text, onClose }: { text: string; onClose(): void }): React.JSX.Element {
+  const toast = useRemote((s) => s.toast)
+  const copyAll = async (): Promise<void> => {
+    if (await copyText(text)) toast('Copied.')
+    else toast('This browser does not allow copying here; select the text instead.', 'error')
+  }
+  return (
+    <Sheet title="Copy text" onClose={onClose} actions={<button className="btn small" onClick={() => void copyAll()}>Copy all</button>}>
+      <pre className="copy-text mono">{text || 'Nothing on the screen yet.'}</pre>
+    </Sheet>
   )
 }

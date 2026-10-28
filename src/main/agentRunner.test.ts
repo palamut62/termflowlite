@@ -151,6 +151,19 @@ describe('helpers', () => {
     expect(taskBranch('ab12')).toBe('deleg/ab12')
     expect(isDelegateAgent('opencode')).toBe(true)
     expect(isDelegateAgent('claude')).toBe(true)
-    expect(isDelegateAgent('gemini')).toBe(false)
+    expect(isDelegateAgent('gemini')).toBe(true)
+    expect(isDelegateAgent('aider')).toBe(false)
+  })
+})
+
+describe('plain-text delegate agents', () => {
+  it('builds full-permission headless commands with model and cwd', () => {
+    expect(headlessCommand('agy', 'do it', '/w', 'm1')).toEqual({ command: 'agy', args: ['-p', 'do it', '--dangerously-skip-permissions', '--model', 'm1'] })
+    expect(headlessCommand('gemini', 'do it', '/w').args).toEqual(['--approval-mode', 'yolo', '-p', 'do it'])
+    expect(headlessCommand('droid', 'do it', '/w', 'x').args).toEqual(['exec', '--auto', 'high', '--cwd', '/w', '-m', 'x', 'do it'])
+  })
+
+  it('uses cleaned stdout as the last message', () => {
+    expect(parseAgentOutput('qwen', '\u001b[32mDone\u001b[0m\n').lastMessage).toBe('Done')
   })
 })

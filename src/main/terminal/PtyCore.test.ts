@@ -71,6 +71,15 @@ describe('PtyCore lifecycle', () => {
     }
   })
 
+  // The renderer's tab has no folder of its own: profileToInput resolves the
+  // startup directory in the main process, so the spawn folder is only ever
+  // known here. Reported on every spawn, not just when input.cwd was empty.
+  it('reports the spawn folder so the tab can be placed in the Projects tree', () => {
+    const events: unknown[] = []
+    new PtyCore((event) => events.push(event)).create('t1', { ...input, cwd: 'C:\\' })
+    expect(events).toContainEqual({ kind: 'cwd', ptyId: 't1', cwd: 'C:\\' })
+  })
+
   it('rejects delayed agent input before spawning a shell', () => {
     const core = new PtyCore(() => undefined)
     expect(() => core.create('t1', { ...input, startupCommand: 'claude', launchCommand: 'review this repo' })).toThrow('never to a delayed shell')

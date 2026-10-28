@@ -1,7 +1,7 @@
 {
   "name": "termflow-lite",
   "productName": "TermFlow Lite",
-  "version": "1.26.0",
+  "version": "1.28.0",
   "description": "A minimal, fast and customizable terminal for developers.",
   "main": "./out/main/index.js",
   "author": "Umut Çelik (palamut62)",
@@ -19,7 +19,7 @@
     "verify": "npm run test && npm run typecheck && npm run build",
     "build": "electron-vite build && npm run build:remote && npm run build:mcp",
     "build:remote": "vite build -c vite.remote.config.ts --logLevel warn",
-    "build:mcp": "esbuild src/main/memory/serverEntry.ts --bundle --platform=node --target=node20 --format=cjs --log-level=warning --outfile=out/mcp/memory-server.cjs && esbuild src/main/orchestration/serverEntry.ts --bundle --platform=node --target=node20 --format=cjs --log-level=warning --outfile=out/mcp/agents-server.cjs",
+    "build:mcp": "esbuild src/main/memory/serverEntry.ts --bundle --platform=node --target=node20 --format=cjs --log-level=warning --outfile=out/mcp/memory-server.cjs && esbuild src/main/orchestration/serverEntry.ts --bundle --platform=node --target=node20 --format=cjs --log-level=warning --outfile=out/mcp/agents-server.cjs && esbuild src/main/transcriptFollowEntry.ts --bundle --platform=node --target=node20 --format=cjs --log-level=warning --outfile=out/mcp/follow-transcript.cjs",
     "build:site": "esbuild scripts/site-companion.ts --bundle --minify --format=iife --target=es2022 --outfile=website/companion.js",
     "start": "electron-vite preview",
     "package": "npm run build && electron-builder --win",
@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@lydell/node-pty": "^1.2.0-beta.12",
+    "@novnc/novnc": "1.7.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-image": "^0.9.0",
     "@xterm/addon-search": "^0.16.0",

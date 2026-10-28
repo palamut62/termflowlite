@@ -12,7 +12,7 @@ import { killProcessTree, runSetupCommand } from './worktreeSetup'
 
 const execFileAsync = promisify(execFile)
 
-export const DELEGATE_AGENTS = ['opencode', 'codex', 'grok', 'claude'] as const
+export const DELEGATE_AGENTS = ['opencode', 'codex', 'grok', 'claude', 'agy', 'gemini', 'qwen', 'copilot', 'kimi', 'droid'] as const
 export type DelegateAgent = (typeof DELEGATE_AGENTS)[number]
 
 export const DEFAULT_TASK_TIMEOUT_MS = 10 * 60_000
@@ -49,6 +49,19 @@ export function headlessCommand(agent: DelegateAgent, prompt: string, cwd: strin
     // Claude'un klasor bayragi yok: spawn cwd + PWD (runDelegatedTask) yeter. Saglayici profilleri model/anahtari env ile verir.
     case 'claude':
       return { command: 'claude', args: ['-p', text, '--dangerously-skip-permissions', '--output-format', 'json', ...(m ? ['--model', m] : [])] }
+    // Asagidakiler `--help` ile dogrulandi; cikti duz metin (son mesaj = stdout sonu). Klasor spawn cwd'sinden gelir.
+    case 'agy':
+      return { command: 'agy', args: ['-p', text, '--dangerously-skip-permissions', ...(m ? ['--model', m] : [])] }
+    case 'gemini':
+      return { command: 'gemini', args: ['--approval-mode', 'yolo', ...(m ? ['-m', m] : []), '-p', text] }
+    case 'qwen':
+      return { command: 'qwen', args: ['--approval-mode', 'yolo', ...(m ? ['-m', m] : []), '-p', text] }
+    case 'copilot':
+      return { command: 'copilot', args: ['--allow-all', ...(m ? ['--model', m] : []), '-p', text] }
+    case 'kimi':
+      return { command: 'kimi', args: ['--auto', ...(m ? ['-m', m] : []), '-p', text] }
+    case 'droid':
+      return { command: 'droid', args: ['exec', '--auto', 'high', '--cwd', cwd, ...(m ? ['-m', m] : []), text] }
   }
 }
 
@@ -113,6 +126,8 @@ export function parseAgentOutput(agent: DelegateAgent, stdout: string, codexLast
       return { lastMessage: '', error: 'Unreadable agent output' }
     }
   }
+  // JSON bilmeyen ajanlar: duz metin cikti; son mesaj stdout'un sonu (ANSI kodlari temizlenir).
+  if (agent !== 'grok') return { lastMessage: stdout.replace(/\[[0-9;?]*[ -/]*[@-~]/g, '').trim().slice(-OUTPUT_TAIL_CHARS) }
   // Grok: tek JSON nesnesi (girintili, cok satir).
   try {
     const result = JSON.parse(stdout.slice(stdout.indexOf('{'))) as { text?: string; stopReason?: string }

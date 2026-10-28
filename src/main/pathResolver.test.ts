@@ -14,6 +14,19 @@ describe('resolvePathCandidate', () => {
     expect(resolvePathCandidate(dir, dir)).toEqual({ path: dir, isDirectory: true, canOpen: true })
   })
 
+  it('finds a bare file name inside the project when cwd does not hold it', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'termflow-path-'))
+    cleanup.push(dir)
+    await mkdir(join(dir, 'src', 'ui'), { recursive: true })
+    await mkdir(join(dir, 'node_modules', 'x'), { recursive: true })
+    const file = join(dir, 'src', 'ui', 'Deep.tsx')
+    await writeFile(file, 'x')
+    await writeFile(join(dir, 'node_modules', 'x', 'Skip.tsx'), 'x')
+    expect(resolvePathCandidate('deep.tsx', dir)?.path).toBe(file)
+    expect(resolvePathCandidate('Skip.tsx', dir)).toBeNull()
+    expect(resolvePathCandidate('src/Nope.tsx', dir)).toBeNull()
+  })
+
   it('resolves a relative file against cwd', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'termflow-path-'))
     cleanup.push(dir)
@@ -39,6 +52,15 @@ describe('resolvePathCandidate', () => {
     // The trailing separator is platform specific: '\' is a plain filename character on POSIX.
     const sep = process.platform === 'win32' ? '\\' : '/'
     expect(resolvePathCandidate(`${sub}${sep}`, dir)).toEqual({ path: sub, isDirectory: true, canOpen: true })
+  })
+
+  it.runIf(process.platform === 'win32')('resolves a Git Bash style /c/... path', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'termflow-path-'))
+    cleanup.push(dir)
+    const file = join(dir, 'a b.txt')
+    await writeFile(file, 'x')
+    const msys = `/${file[0].toLowerCase()}${file.slice(2).replaceAll('\\', '/')}`
+    expect(resolvePathCandidate(msys, 'C:\\')).toEqual({ path: file, isDirectory: false, canOpen: true })
   })
 
   it('expands ~ to the home directory', () => {

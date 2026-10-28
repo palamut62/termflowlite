@@ -3,8 +3,10 @@ import { homedir, hostname } from 'os'
 import QRCode from 'qrcode'
 import type { AppSettings, ShellInfo } from '../../shared/types'
 import type { RemoteCommandReply, RemoteDeviceInfo, RemotePairing, RemoteStatus, RemoteTabCommand, RemoteTabsState } from '../../shared/remote'
+import { agentForProfile } from '../../shared/profiles'
 import { DeviceStore, formatPairingCode } from './devices'
-import { RemoteHub, type RemoteTerminals } from './RemoteHub'
+import { PushActionTokens, buildPushActions, type PushAction } from './phonePush'
+import { RemoteHub, type RemoteHubDeps, type RemoteTerminals } from './RemoteHub'
 import { RemoteServer } from './RemoteServer'
 import { findTailscaleAddress } from './tailscale'
 
@@ -15,6 +17,7 @@ const ADDRESS_POLL_MS = 15_000
 export interface RemoteControllerDeps {
   devicesFile: string
   staticDir: string
+  uploadDir: string
   terminals: RemoteTerminals
   invokeIpc(channel: string, args: unknown[]): Promise<unknown>
   getSettings(): AppSettings
@@ -27,6 +30,7 @@ export interface RemoteControllerDeps {
   platform: string
   version: string
   findAddress?: () => string | null
+  elevation?: RemoteHubDeps['elevation']
 }
 
 /**
@@ -45,6 +49,8 @@ export class RemoteController {
   private poll: NodeJS.Timeout | null = null
   private pending = new Map<string, { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }>()
   private applying: Promise<void> = Promise.resolve()
+  private pushTokens = new PushActionTokens()
+  private tabs: RemoteTabsState = { tabs: [], activeTabId: null }
 
   constructor(private readonly deps: RemoteControllerDeps) {
     this.devices = new DeviceStore(deps.devicesFile)
@@ -60,10 +66,12 @@ export class RemoteController {
       platform: deps.platform,
       version: deps.version,
       home: homedir(),
-      computer: hostname()
+      computer: hostname(),
+      elevation: deps.elevation
     })
     this.server = new RemoteServer({
       staticDir: deps.staticDir,
+      uploadDir: deps.uploadDir,
       hub: this.hub,
       devices: this.devices,
       onPaired: (deviceId, renewed) => {
@@ -71,6 +79,21 @@ export class RemoteController {
         if (renewed) this.hub.revokeDevice(deviceId)
         this.lastPairedAt = Date.now()
         this.publish()
+      },
+      onPushAction: (token) => this.runPushAction(token),
+      status: () => {
+        const settings = deps.getSettings()
+        return { computer: hostname(), tabs: this.tabs.tabs.map(({ id, title, activity, profileId }) => ({ id, title, activity, agent: agentForProfile(settings, profileId) !== null })) }
+      },
+      typeText: (text) => {
+        const tabId = this.tabs.activeTabId
+        if (!tabId) return false
+        this.deps.terminals.write(tabId, text)
+        return true
+      },
+      screenPort: () => {
+        const { screen } = deps.getSettings().remote
+        return screen.enabled ? screen.port : null
       }
     })
   }
@@ -174,7 +197,21 @@ export class RemoteController {
   }
 
   setTabs(state: RemoteTabsState): void {
+    this.tabs = state
     this.hub.setTabs(state)
+  }
+
+  /** Approve / Reject buttons for a "needs input" push; none while the server is not reachable. */
+  pushActions(tabId: string): PushAction[] | undefined {
+    if (this.state.state !== 'running' || !this.state.url) return undefined
+    return buildPushActions(this.state.url, this.pushTokens.issue(tabId))
+  }
+
+  private runPushAction(token: unknown): boolean {
+    const action = this.pushTokens.consume(token)
+    if (!action || !this.tabs.tabs.some((t) => t.id === action.tabId)) return false
+    this.deps.terminals.write(action.tabId, action.data)
+    return true
   }
 
   settingsChanged(settings: AppSettings): void {

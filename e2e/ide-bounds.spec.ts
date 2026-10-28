@@ -43,7 +43,7 @@ test.afterEach(async () => {
   rmSync(folder, { recursive: true, force: true })
 })
 
-const OVERLAYS = '[role="dialog"], [role="menu"], .ctx-menu, .ide-menu, .task-palette, .usage-popover, .modal, .ide-floating'
+const OVERLAYS = '[role="dialog"], [role="menu"], .ctx-menu, .ide-menu, .task-palette, .usage-popover, .modal'
 
 /** Overlay boxes that are not fully inside the window right now. */
 async function offscreen(page: Page): Promise<string[]> {
@@ -69,7 +69,7 @@ const STEPS: Step[] = [
   ['workspace options', (p) => p.getByRole('button', { name: 'Workspace options' }).click()],
   ['help menu', (p) => p.getByRole('button', { name: 'Help', exact: true }).click()],
   ['agent activity', (p) => p.getByRole('button', { name: 'Agent activity' }).click()],
-  ['create worktree', (p) => p.getByRole('button', { name: 'New worktree' }).click()],
+  ['create worktree', async (p) => { await p.getByRole('button', { name: 'Application menu' }).click(); await p.getByRole('menuitem', { name: 'New Worktree...' }).click() }],
   ['workspace board', (p) => p.getByRole('button', { name: 'Workspace board' }).click()],
   ['search palette', async (p) => { await p.locator('.terminal-host .xterm').first().click(); await p.keyboard.press('Control+Shift+J') }],
   ['command palette', async (p) => { await p.locator('.terminal-host .xterm').first().click(); await p.keyboard.press('Control+Shift+P') }],
@@ -83,7 +83,6 @@ const STEPS: Step[] = [
   ['quick commands', (p) => p.getByRole('button', { name: /Command/ }).first().click()],
   ['worktree menu', (p) => p.locator('.ide-tree-worktree', { hasText: 'fix-login' }).click({ button: 'right' })],
   ['project menu', (p) => p.locator('.ide-tree-project').first().click({ button: 'right' })],
-  ['floating workspace', async (p) => { await p.getByRole('button', { name: 'Open floating workspace' }).click(); await p.getByRole('button', { name: 'New floating terminal' }).click() }],
   ['source control menu', async (p) => { await p.getByRole('tab', { name: 'Source Control' }).click(); await p.getByRole('button', { name: 'Source control actions' }).click() }],
   ['explorer menu', async (p) => { await p.getByRole('tab', { name: 'Explorer' }).click(); await p.getByRole('button', { name: /actions|More/i }).first().click() }]
 ]

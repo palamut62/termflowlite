@@ -10,7 +10,7 @@ import type { AppSettings, DelegateAgentKind, DelegatedTask, OrchestrationTarget
 import { discardTask, runDelegatedTask, type DelegatedTaskInput, type DelegatedTaskRun } from '../agentRunner'
 import { readRepoInfo } from '../worktree'
 
-const BUILTIN: readonly [DelegateAgentKind, string][] = [['opencode', 'OpenCode'], ['codex', 'Codex'], ['grok', 'Grok'], ['claude', 'Claude Code']]
+const BUILTIN: readonly [DelegateAgentKind, string][] = [['opencode', 'OpenCode'], ['codex', 'Codex'], ['grok', 'Grok'], ['claude', 'Claude Code'], ['agy', 'Antigravity'], ['gemini', 'Gemini CLI'], ['qwen', 'Qwen Code'], ['copilot', 'GitHub Copilot CLI'], ['kimi', 'Kimi'], ['droid', 'Droid']]
 const MAX_TASKS = 50
 const MAX_PROMPT = 20_000
 const MAX_CHECK = 2_000

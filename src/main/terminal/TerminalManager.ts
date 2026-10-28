@@ -127,14 +127,14 @@ export class TerminalManager {
   }
 
   /** Resolve a profile id + create the PTY at the measured cell size. */
-  create(tabId: string, profileId: string, cols: number, rows: number, cwd?: string, resumeSession?: AgentSessionRef, launchCommand?: string, permissionMode?: AgentPermissionMode, model?: string): { pid: number } {
+  create(tabId: string, profileId: string, cols: number, rows: number, cwd?: string, resumeSession?: AgentSessionRef, launchCommand?: string, permissionMode?: AgentPermissionMode, model?: string, elevated?: boolean): { pid: number } {
     let settings = this.getSettings()
     if (model) settings = { ...settings,
       profiles: mergeProfiles(settings.profiles).map(p => p.id === profileId ? { ...p, model } : p),
       providerProfiles: settings.providerProfiles.map(p => `provider:${p.id}` === profileId ? { ...p, model } : p) }
     const resolvedId = resolveProfileId(profileId, settings, this.shells)
     const input = applyProviderSecret(
-      { ...profileToInput(resolvedId, settings, this.shells, { cols, rows, cwd, resumeSession, permissionMode }), launchCommand },
+      { ...profileToInput(resolvedId, settings, this.shells, { cols, rows, cwd, resumeSession, permissionMode }), launchCommand, elevated },
       resolvedId,
       settings,
       this.getProviderSecret

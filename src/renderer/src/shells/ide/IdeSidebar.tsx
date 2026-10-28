@@ -6,6 +6,7 @@ import { useJumpPaletteStore } from '../../store/jumpPaletteStore'
 import { useAgentEventStore } from '../../store/agentEventStore'
 import { useTaskPaletteStore } from '../../store/taskPaletteStore'
 import { useTerminalStore } from '../../store/terminalStore'
+import { NewProjectModal } from '../../tabs/NewProjectModal'
 import { WorktreeLauncherModal } from '../../tabs/WorktreeLauncherModal'
 import { toggleUiMode } from '../uiMode'
 import { ProjectTree, addProject, saveIde } from './ProjectTree'
@@ -39,6 +40,7 @@ export function IdeSidebar(): React.JSX.Element {
   const ide = useSettingsStore((s) => s.settings.ide)
   const unseen = useTerminalStore((s) => s.tabs.filter((t) => t.attention).length)
   const [worktreeOpen, setWorktreeOpen] = useState(false)
+  const [newProjectOpen, setNewProjectOpen] = useState(false)
   const page = useIdePageStore((s) => s.page)
   const navClass = (p: IdePage): string => `ide-nav-item${page === p ? ' ide-nav-on' : ''}`
   const [menu, setMenu] = useState<OpenMenu>(null)
@@ -85,7 +87,7 @@ export function IdeSidebar(): React.JSX.Element {
         </button>
         <button className={`ide-icon-btn${menu?.kind === 'options' ? ' ide-icon-on' : ''}`} onClick={openMenu('options')} title="Workspace options" aria-label="Workspace options" aria-haspopup="menu"><SlidersHorizontal size={13} /></button>
         <button className="ide-icon-btn" onClick={() => void addProject()} title="Add project folder" aria-label="Add project folder"><FolderPlus size={13} /></button>
-        <button className="ide-icon-btn" onClick={() => setWorktreeOpen(true)} title="New worktree with an agent" aria-label="New worktree"><Plus size={14} /></button>
+        <button className="ide-icon-btn" onClick={() => setNewProjectOpen(true)} title="New project with an agent" aria-label="New project"><Plus size={14} /></button>
       </div>
       <ProjectTree onNewWorktree={() => setWorktreeOpen(true)} />
       <div className="ide-sidebar-foot">
@@ -100,6 +102,7 @@ export function IdeSidebar(): React.JSX.Element {
       {menu?.kind === 'app' && (
         <IdeMenu anchor={menu.anchor} label="Application menu" onClose={close} width={240}>
           <MenuItem onSelect={pick(newTab)} hint="Ctrl+Shift+T">New Terminal</MenuItem>
+          <MenuItem onSelect={pick(() => setNewProjectOpen(true))}>New Project...</MenuItem>
           <MenuItem onSelect={pick(() => setWorktreeOpen(true))}>New Worktree...</MenuItem>
           <MenuItem onSelect={pick(() => void addProject())}>Add Project Folder...</MenuItem>
           <div className="ctx-menu-divider" />
@@ -149,6 +152,7 @@ export function IdeSidebar(): React.JSX.Element {
           <MenuItem onSelect={pick(() => useSettingsStore.getState().openSettings('about'))}>Check for Updates</MenuItem>
         </IdeMenu>
       )}
+      {newProjectOpen && <NewProjectModal onClose={() => setNewProjectOpen(false)} onCreated={(path) => { const ide = useSettingsStore.getState().settings.ide; if (!ide.projects.includes(path)) saveIde({ projects: [...ide.projects, path] }) }} />}
       {worktreeOpen && <WorktreeLauncherModal onClose={() => setWorktreeOpen(false)} />}
     </aside>
   )

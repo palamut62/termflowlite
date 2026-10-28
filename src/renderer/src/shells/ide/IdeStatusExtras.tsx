@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Coffee, ExternalLink, LoaderCircle, MemoryStick, Network } from 'lucide-react'
+import { Bot, ExternalLink, LoaderCircle, MemoryStick, Moon, Network, Sun } from 'lucide-react'
 import type { ResourceSnapshot } from '../../../../shared/ipc'
 import type { IdeSettings } from '../../../../shared/types'
 import { agentForProfile } from '../../../../shared/profiles'
@@ -14,10 +14,10 @@ export function formatBytes(bytes: number): string {
   return `${Math.round(bytes / 1024 ** 2)} MB`
 }
 
-const AWAKE: { id: IdeSettings['keepAwake']; label: string; hint: string }[] = [
-  { id: 'on', label: 'On', hint: 'Keep this computer awake while TermFlow is open' },
-  { id: 'agent', label: 'Agent', hint: 'Only while an agent is working' },
-  { id: 'off', label: 'Off', hint: 'Let the computer sleep normally' }
+const AWAKE: { id: IdeSettings['keepAwake']; label: string; hint: string; Icon: typeof Sun }[] = [
+  { id: 'on', label: 'On', hint: 'Keep this computer awake while TermFlow is open', Icon: Sun },
+  { id: 'agent', label: 'Agent', hint: 'Only while an agent is working', Icon: Bot },
+  { id: 'off', label: 'Off', hint: 'Let the computer sleep normally', Icon: Moon }
 ]
 
 /** Surec tablosu taramasi pahali: yalniz popover acikken 3 sn'de bir. */
@@ -63,6 +63,7 @@ export function IdeStatusExtras(): React.JSX.Element {
     setOpen((current) => (current?.kind === kind ? null : { kind, anchor }))
   }
   const close = (): void => setOpen(null)
+  const awakeMode = AWAKE.find((a) => a.id === mode) ?? AWAKE[2]
   const titleOf = (id?: string): string => tabs.find((t) => t.id === id)?.title ?? 'Terminal'
   const terminalMemory = snapshot?.terminals.reduce((sum, t) => sum + t.memory, 0) ?? 0
   const workspacePorts = snapshot?.ports.filter((p) => p.terminalId) ?? []
@@ -71,7 +72,7 @@ export function IdeStatusExtras(): React.JSX.Element {
   return (
     <>
       <button className={`status-item status-action ide-awake${awake ? ' ide-awake-on' : ''}`} onClick={toggle('awake')} title="Keep computer awake" aria-label={`Keep computer awake: ${mode}`} aria-haspopup="menu">
-        <Coffee size={12} />{AWAKE.find((a) => a.id === mode)?.label}
+        <awakeMode.Icon size={12} />{awake ? 'Awake' : 'Sleep'}<span className="ide-awake-dot" aria-hidden="true" />
       </button>
       <button className="status-item status-action" onClick={toggle('resources')} title="Resource Manager" aria-label="Resource Manager" aria-haspopup="dialog">
         <MemoryStick size={12} />{formatBytes(appMemory)}
@@ -81,9 +82,19 @@ export function IdeStatusExtras(): React.JSX.Element {
       </button>
 
       {open?.kind === 'awake' && (
-        <IdeMenu anchor={open.anchor} up label="Keep computer awake" onClose={close} width={260}>
-          <div className="ctx-menu-section" role="presentation">Keep computer awake</div>
-          {AWAKE.map((a) => <MenuItem key={a.id} checked={mode === a.id} onSelect={() => { close(); saveIde({ keepAwake: a.id }) }}><span className="ide-awake-option">{a.label}<small>{a.hint}</small></span></MenuItem>)}
+        <IdeMenu anchor={open.anchor} up label="Keep computer awake" onClose={close} width={280} className="ide-awake-menu">
+          <div className={`ide-awake-head${awake ? ' ide-awake-head-on' : ''}`} role="presentation">
+            <span className="ide-awake-dot" aria-hidden="true" />
+            <span>{awake ? 'Sleep is blocked right now' : 'Computer can sleep'}</span>
+          </div>
+          <div className="ide-awake-seg" role="presentation">
+            {AWAKE.map((a) => (
+              <button key={a.id} className="ide-awake-seg-item" role="menuitemradio" aria-checked={mode === a.id} title={a.hint} onClick={() => { close(); saveIde({ keepAwake: a.id }) }}>
+                <a.Icon size={15} />{a.label}
+              </button>
+            ))}
+          </div>
+          <p className="ide-awake-hint">{awakeMode.hint}</p>
         </IdeMenu>
       )}
       {open?.kind === 'resources' && (

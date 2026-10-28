@@ -4,6 +4,7 @@ import { useTerminalStore } from '../store/terminalStore'
 import { useAgentEventStore } from '../store/agentEventStore'
 import { raiseAttention } from '../attention/alerts'
 import { pickStartedSession } from './agentResume'
+import { onClaudeLimit } from '../claudeFailover'
 
 /** Hook'lu sekmede bu olaylar yalniz ajanin kendi bildiriminden gelir, cikti metninden degil. */
 export const HOOK_OWNED_KINDS = new Set<AgentEventKind>(['approval', 'question', 'completed', 'error'])
@@ -24,6 +25,7 @@ export function applyHookEvent(tabId: string, agent: AgentKind, permissionMode: 
   if (!store.tabs.some((tab) => tab.id === tabId)) return
   const previous = store.tabs.find((tab) => tab.id === tabId)?.agentHook?.state
   store.applyAgentHook(tabId, event)
+  if (agent === 'claude' && event.limit) void onClaudeLimit(tabId)
   if (!event.state || event.state === previous) return
   const inbox = INBOX[event.state]
   if (inbox) useAgentEventStore.getState().append(tabId, agent, permissionMode, { ...inbox, ...(event.detail ? { detail: event.detail } : {}) })

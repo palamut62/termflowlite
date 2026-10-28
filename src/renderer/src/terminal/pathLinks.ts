@@ -65,6 +65,11 @@ const SENTENCE_DOT = /([A-Za-z0-9])\.+$/
 const SEPARATOR = /[\\/]/
 const EXTENSION = /\.[A-Za-z0-9]{1,10}$/
 const BAD_PREFIX = /^[-#=+]/
+/** Çok kelimeli adaylarda uzantı harf içermeli ("v1.2", "3.14" dosya değildir). */
+const FILE_EXTENSION = /\.[A-Za-z0-9]*[A-Za-z][A-Za-z0-9]*$/
+const MULTI_WORD_LIMIT = 8
+/** Çok kelimeli adayın başı harf/rakam/parantez/yol ayracı olmalı ("✓", "-", tırnak değil). */
+const NAME_START = /^[\p{L}\p{N}(\[_.~/\\]/u
 
 function isPathLike(value: string): boolean {
   if (!value) return false
@@ -164,8 +169,31 @@ export function extractPathCandidates(text: string): PathCandidate[] {
     if (quotedRanges.some((range) => matchIndex >= range.start && matchEnd <= range.end)) continue
     addCandidate(match[0], matchIndex)
   }
+
+  // Boşluklu / parantezli dosya adları ("Rapor (1).docx", "Ovacık sulaması.xlsx"):
+  // uzantılı her kelimeden geriye doğru kelime kelime uzatılır. Yalnızca diskte var
+  // olan aday link olur (main doğrular), cümle içinde ilk 3-4 deneme boşa gider.
+  const words = [...text.matchAll(/\S+/g)]
+  for (let i = 1; i < words.length; i += 1) {
+    const word = words[i][0].replace(/[).\]},;:!?'"]+$/, '')
+    if (!FILE_EXTENSION.test(word)) continue
+    const endIndex = words[i].index + word.length
+    for (let back = 1; back < MULTI_WORD_LIMIT && i - back >= 0; back += 1) {
+      const startIndex = words[i - back].index
+      const raw = text.slice(startIndex, endIndex)
+      if (NAME_START.test(raw)) addCandidate(raw, startIndex)
+    }
+  }
   return results.sort((left, right) => (right.end - right.start) - (left.end - left.start) || left.start - right.start)
 }
+
+/** Uzantisiz sade ad ("src", "docs"): klasor olabilir; yalniz cwd'de gercekten varsa link olur (main dogrular). */
+const BARE_NAME = /(?<![\w./\~:-])[A-Za-z_][\w-]{1,40}(?![\w./\:-])/g
+export function extractBareNames(text: string): PathCandidate[] {
+  return [...text.matchAll(BARE_NAME)].slice(0, 40).map((m) => ({ value: m[0], start: m.index! + 1, end: m.index! + m[0].length }))
+}
+
+const withBare = (text: string): PathCandidate[] => [...extractPathCandidates(text), ...extractBareNames(text)]
 
 // cwd|aday -> ResolvedPath | null. 'null' da önbelleklenir ki yok olan bir yol
 // için IPC tekrar edilmesin.
@@ -211,7 +239,7 @@ export function registerPathLinkProvider(
         return
       }
       const text = line.translateToString(false)
-      const candidates = extractPathCandidates(text)
+      const candidates = withBare(text)
       if (candidates.length === 0) {
         callback(undefined)
         return
@@ -273,7 +301,7 @@ export async function getPathAtMouse(term: Terminal, e: MouseEvent, cwd: string)
   const line = buffer.getLine(buffer.viewportY + cell.row)
   if (!line) return null
   const col = cell.col + 1 // 0-based -> 1-based
-  for (const cand of extractPathCandidates(line.translateToString(false))) {
+  for (const cand of withBare(line.translateToString(false))) {
     if (col >= cand.start && col <= cand.end) {
       const resolved = await resolvePathCached(cand.value, cwd)
       if (resolved) return { path: resolved.path, isDirectory: resolved.isDirectory, canOpen: resolved.canOpen, label: cand.value, line: cand.line, column: cand.column }

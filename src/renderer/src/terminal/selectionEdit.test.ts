@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { planSelectionEdit, type CellGrid } from './selectionEdit'
+import { pickDrawnCaret, planSelectionEdit, type CellGrid, type InverseGrid } from './selectionEdit'
 
 /** Satırları düz metin olarak alan sahte ızgara; '~' geniş karakter devam hücresi. */
 function grid(rows: string[], cols: number, wrapped: number[] = []): CellGrid {
@@ -69,5 +69,50 @@ describe('planSelectionEdit', () => {
 
   it('refuses empty selections', () => {
     expect(planSelectionEdit(line, { x: 8, y: 0 }, { x: 8, y: 0 }, { x: 21, y: 0 })).toBeNull()
+  })
+})
+
+/**
+ * Sahte inverse ızgarası: '#' caret hücresi, '~' geniş karakterin devamı,
+ * başka her karakter normal.
+ */
+function inv(rows: string[], cols: number): InverseGrid {
+  return {
+    cols,
+    isInverse: (row, col) => rows[row]?.[col] === '#' || rows[row]?.[col] === '~',
+    width: (row, col) => (rows[row]?.[col] === '~' ? 0 : 1)
+  }
+}
+
+describe('pickDrawnCaret', () => {
+  it('finds a lone caret on the selection row', () => {
+    const g = inv(['> alpha bravo charlie #'], 40)
+    expect(pickDrawnCaret(g, 0, 2, { x: 13, y: 0 })).toEqual({ x: 22, y: 0 })
+  })
+
+  it('finds a caret parked on another row of a multi-line prompt box', () => {
+    const g = inv(['> alpha bravo charlie', '  #'], 40)
+    expect(pickDrawnCaret(g, 0, 2, { x: 13, y: 0 })).toEqual({ x: 2, y: 1 })
+  })
+
+  it('ignores inverse runs longer than one character (status bar, highlighted row)', () => {
+    // İki hücrelik etiket seçime caret'ten DAHA yakın: filtre olmazsa o seçilirdi.
+    const g = inv(['> alpha bravo## charlie #'], 40)
+    expect(pickDrawnCaret(g, 0, 2, { x: 13, y: 0 })).toEqual({ x: 24, y: 0 })
+  })
+
+  it('accepts a wide-character caret (two cells, continuation width 0)', () => {
+    const g = inv(['> alpha bravo #~'], 40)
+    expect(pickDrawnCaret(g, 0, 2, { x: 13, y: 0 })).toEqual({ x: 14, y: 0 })
+  })
+
+  it('picks the candidate nearest to the selection end', () => {
+    const g = inv(['#', '> alpha bravo charlie #', '#'], 40)
+    expect(pickDrawnCaret(g, 0, 2, { x: 13, y: 1 })).toEqual({ x: 22, y: 1 })
+  })
+
+  it('returns null when the screen holds no single-cell inverse run', () => {
+    const g = inv(['> alpha bravo charlie', ' ### '], 40)
+    expect(pickDrawnCaret(g, 0, 2, { x: 13, y: 0 })).toBeNull()
   })
 })

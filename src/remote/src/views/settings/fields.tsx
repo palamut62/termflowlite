@@ -127,7 +127,9 @@ export const TERMINAL_GROUPS: { title: string; fields: FieldSpec[] }[] = [
     fields: [
       { kind: 'toggle', key: 'showSessionRail', label: 'Session rail' },
       { kind: 'toggle', key: 'closeToTray', label: 'Keep running in the tray', hint: 'Phones stay connected when the window is closed' },
+      { kind: 'toggle', key: 'launchAtLogin', label: 'Launch at startup', hint: 'Start with Windows sign-in (installed app only)' },
       { kind: 'toggle', key: 'autoCheckUpdates', label: 'Check for updates on start' },
+      { kind: 'toggle', key: 'autoUpdateAgents', label: 'Auto-update agent CLIs', hint: 'npm-installed agents, at start and daily' },
       { kind: 'toggle', key: 'showTips', label: 'Show tips' }
     ]
   },

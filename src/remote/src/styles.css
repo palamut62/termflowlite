@@ -65,7 +65,7 @@ a { color: inherit; text-decoration: none; }
 .screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
 .screen.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-.bottom-nav { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--border); background: var(--surface); padding-bottom: var(--safe-bottom); }
+.bottom-nav { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--border); background: var(--surface); padding-bottom: var(--safe-bottom); }
 .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; color: var(--muted); font-size: 11px; }
 .nav-item.active { color: var(--accent); }
 
@@ -154,6 +154,8 @@ a { color: inherit; text-decoration: none; }
 .input.number { width: 84px; text-align: right; }
 .row-control .select { width: auto; max-width: 100%; }
 textarea.input { resize: vertical; }
+/* iOS zooms into any field under 16px on focus and the form slides off screen. */
+input.input, textarea.input, select.select { font-size: 16px; }
 .inline-form { display: flex; gap: 8px; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border); font-weight: 550; font-size: 14px; }
@@ -174,7 +176,7 @@ textarea.input { resize: vertical; }
 .empty strong { color: var(--text); }
 
 /* ---------- Sheets and dialogs ---------- */
-.sheet-backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; animation: fade .15s ease-out; }
+.sheet-backdrop { position: fixed; left: 0; right: 0; top: var(--vv-top, 0px); height: var(--app-height); z-index: 20; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; animation: fade .15s ease-out; }
 .sheet-backdrop.center { align-items: center; padding: 24px; }
 .sheet { width: 100%; max-width: 720px; max-height: calc(var(--app-height) - 40px - var(--safe-top)); display: flex; flex-direction: column; background: var(--bg); border-radius: 18px 18px 0 0; border: 1px solid var(--border); border-bottom: 0; animation: rise .2s ease-out; }
 .sheet-head { display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px 18px; }
@@ -268,9 +270,10 @@ button.home-card:active { background: var(--surface-2); }
 .home-action { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14.5px; font-weight: 500; }
 .home-action:active { background: var(--surface-2); }
 .home-usage { align-items: flex-start; }
-.home-bars { display: flex !important; gap: 14px !important; }
+.home-bars { display: flex !important; flex-direction: column; align-items: stretch !important; gap: 6px !important; }
 .home-bar { flex: 1; display: flex; align-items: center; gap: 6px; }
 .home-bar em { font-style: normal; font-size: 11.5px; color: var(--muted); min-width: 18px; }
+.home-bar b { font-weight: 500; font-size: 11.5px; color: var(--text); min-width: 52px; text-align: right; }
 .home-track { flex: 1; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .home-fill { display: block; height: 100%; background: var(--text); border-radius: 2px; }
 .home-fill.warn { background: var(--warn); }
@@ -296,3 +299,49 @@ button.home-card:active { background: var(--surface-2); }
 
 .term-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 2px 12px 6px 6px; }
 .term-head .ws-title span { display: flex; align-items: center; gap: 6px; }
+
+/* iPhone app: dictation banner sits above the exit/offline banners. */
+.term-banner.dictation { bottom: auto; top: 8px; justify-content: flex-start; color: var(--accent); }
+.key { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+.copy-text { margin: 0; padding: 10px; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-word; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; -webkit-user-select: text; user-select: text; }
+
+.snippet-row { display: flex; align-items: center; gap: 4px; }
+.snippet-text { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.snippet-add { display: flex; gap: 8px; margin-top: 10px; }
+.snippet-add .input { flex: 1; min-width: 0; }
+
+.diff-files { display: flex; flex-direction: column; gap: 8px; }
+.diff-file { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.diff-file-head { width: 100%; display: flex; align-items: center; gap: 6px; padding: 10px; text-align: left; }
+.diff-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; }
+.diff-count { font-size: 12px; font-variant-numeric: tabular-nums; }
+.diff-count.add { color: var(--ok); }
+.diff-count.del { color: var(--bad); }
+.diff-body { margin: 0; padding: 6px 0; overflow-x: auto; border-top: 1px solid var(--border); font-size: 11.5px; line-height: 1.45; }
+.diff-line { display: block; padding: 0 10px; white-space: pre; }
+.diff-line.add { background: color-mix(in srgb, var(--ok) 16%, transparent); }
+.diff-line.del { background: color-mix(in srgb, var(--bad) 16%, transparent); }
+.diff-line.hunk { color: var(--muted); }
+
+/* ---------- Screen sharing (noVNC) ---------- */
+.screen-view { position: absolute; inset: 0; background: #000; --screen-bar: 64px; }
+.screen-canvas { position: absolute; inset: 0; }
+.screen-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; color: var(--muted); background: var(--bg); }
+.screen-overlay p { margin: 0; max-width: 320px; }
+.screen-password { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; text-align: left; }
+.screen-bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 6px; justify-content: center; padding: 6px; background: color-mix(in srgb, var(--surface) 86%, transparent); border-top: 1px solid var(--border); }
+/* Yatayda masaustu letterbox olur: bar yan bosluga gecer, PC gorev cubugunu kapatmaz. */
+.screen-view.immersive .screen-canvas { right: var(--screen-bar); }
+.screen-view.immersive .screen-bar { left: auto; top: 0; width: var(--screen-bar); flex-direction: column; align-items: stretch; justify-content: center; border-top: 0; border-left: 1px solid var(--border); padding: 6px 5px; }
+.screen-view.immersive .screen-bar .btn { min-height: 40px; padding: 0 4px; font-size: 11px; line-height: 1.15; white-space: normal; }
+
+.screen-bar .btn { min-height: 36px; padding: 0 10px; font-size: 13px; }
+.screen-bar .btn.active { border-color: var(--accent); color: var(--accent); }
+/* Focusable but out of the way: tapping Keyboard focuses it to raise the phone keyboard. */
+.screen-keys { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.screen-off { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 32px 24px; color: var(--muted); }
+.screen-off h2 { margin: 0; font-size: 18px; color: var(--text); }
+.screen-off p { margin: 0; max-width: 340px; }
+/* Full screen: the desktop gets the whole phone, app chrome steps aside. */
+:root[data-immersive] .app-head, :root[data-immersive] .bottom-nav { display: none; }

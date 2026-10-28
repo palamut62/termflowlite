@@ -65,3 +65,63 @@ Metotlar: `ipc` (izin listeli kanal), `tab.open|close|rename|focus|restart`,
   izin listesi, boyut hakemligi (TerminalManager), hub (fake soket + fake renderer).
 - Entegrasyon: gercek http+ws sunucusu 127.0.0.1'de (test kancasiyla) eslestirme + auth + akis.
 - Canli: Tailscale IP'sinden yerlesik tarayicida mobil gorunum.
+
+## Yonetici sekmeleri (2026-10-15, kullanici karari)
+- Windows hicbir uygulamanin UAC penceresine tiklamasina izin vermez (guvenli masaustu), bu yuzden
+  "PC'deki herhangi bir UAC'yi telefondan onayla" yapilmaz. Yerine: telefonda PIN ile onaylanan yonetici sekmesi.
+- Kurulum masaustunde, bir kez UAC ile: Ayarlar > Remote > "Administrator tabs from the phone", PIN (6-12 rakam).
+  Yukseltilmis PowerShell `%ProgramData%\<slug>\elevation.json`'a scrypt PIN hash'ini yazar (klasor ACL'i yalniz
+  Administrators + SYSTEM) ve "<urun> Elevated" adli, tetikleyicisiz, "en yuksek yetkiyle" calisan gorev kaydeder
+  (`<exe> --termflow-elevated-host`). Kapatma/PIN degistirme yine UAC ister.
+- Kullanim: telefonda New tab > "Run as administrator" + PIN. Hub `tab.open{elevated,pin}` gorev kurulu degilse
+  reddeder; PIN 60 sn'lik tek kullanimlik onay olarak ana surecte bekler, sekme `elevated` bayragiyla acilir,
+  PtyCore `spawnElevated` ile gorevi `schtasks /run` ile baslatir. Yukseltilmis host PIN'i kendisi dogrular
+  (5 yanlis -> 15 dk kilit), kabugu node-pty ile acar ve named pipe (`\.\pipe\<slug>-elevate-<kullanici hash>`)
+  uzerinden JSON satirlariyla aktarir. Yanlis PIN / kurulum yok / baglanti yok sekmeye kirmizi yazilip sekme kapanir.
+- Sekme basligi `Admin: ...` (masaustu, IDE, widget ve telefon ayni isaret). Oturum geri yuklenince ve yeniden
+  baslatmada yonetici sekmesi kendiliginden yukselmez: yeniden baslatma yeni telefon onayi ister.
+- DURUM (2026-10-15): YAYINLANMADI. Kullanici basina kurulumda uygulama dosyalari kullanici yazilabilir klasorde;
+  PIN kontrolu bu dosyalarin icinde oldugu icin tasarim su haliyle UAC'yi zayiflatir. Yayin oncesi yukseltilmis
+  hostun korumali bir konumdan calismasi (ya da imzali servis) gerekir; karar bekliyor.
+
+## Telefondan dosya yukleme (2026-10-22)
+- Terminal ekranindaki key bar'da ataç (Paperclip) butonu: telefon dosya secici (galeri/kamera/dosyalar, coklu secim).
+- `POST /api/upload`: ham govde, `Authorization: Bearer <cihaz anahtari>`, `X-File-Name` (URI-encoded), Origin = Host.
+  Yalniz eslesmis cihaz; govde diske akar (bellege alinmaz), sinir 200 MB (413). Ayni ad varsa `ad (1).uzanti`, uzerine yazilmaz.
+- Kayit yeri: `<Downloads>/TermFlow Uploads/` (`uploadDir`). Ad guvenli hale getirilir (`uploads.ts safeUploadName`: yol, kontrol
+  karakteri, Windows ozel adlari).
+- Basarili yuklemede dosya yolu (bosluk varsa tirnakli) aktif sekmeye yazilir; ajan dosyayi bu yoldan okur. Enter gonderilmez.
+- Kapsam disi: yuklemeden ilerleme cubugu, kesilen yuklemeyi surdurme, PC'den telefona indirme.
+
+## iPhone uygulamasi koprusu (2026-10-27)
+- TermFlow iPhone uygulamasi (`../termflow-lite-ios`, WKWebView) `window.webkit.messageHandlers.termflow` saglar; telefon
+  istemcisi `src/remote/src/native.ts` ile kullanir, duz tarayicida hepsi devre disi. Uygulama yalniz kayitli sunucu kokenindeki
+  ana cerceveden mesaj kabul eder.
+- Sayfa -> uygulama: copy, paste (iPhone panosu), awake (bir sekme `running` iken ekran kapanmaz), haptic (en az 5 sn calisan
+  sekme durunca / girdi isteyince, 4 sn aralik), dictate (mikrofon tusu basili tut: Apple konusma tanima, metin mesaj kutusuna),
+  lock (Face ID kilidi; acip kapatmak da kimlik ister), computers (kayitli bilgisayarlar arasinda gecis).
+- Uygulama -> sayfa (`window.termflowNative.receive`): text (Kisayol `termflow://send?text=..&enter=0`, yapistirma, paylasilan
+  dosya yolu), dictation, info (kilit, biyometri, imza bitis tarihi), notice. `token()` paylasilan dosyayi uygulamanin
+  `/api/upload`'a kendisinin gondermesi icin.
+- Telefon istemcisinde herkes icin: Quick prompts (Zap tusu, telefonda saklanan hazir promptlar), sekme menusu > Copy text
+  (son 300 satir secilebilir metin), Project > Review changes (`scm:diff` izin listesine eklendi, salt okunur).
+- iPhone widget / Live Activity / paylasim extension'i icin native API (cihaz anahtari `Authorization: Bearer`, Origin gerekmez:
+  tarayici anahtari kendiliginden gondermez): `GET /api/status` -> `{computer, tabs[{id,title,activity,agent}]}`;
+  `POST /api/type {text}` -> masaustundeki aktif sekmeye yazar, ENTER YOK, kontrol karakterleri (Enter/Esc/^C...) bosluga
+  cevrilir (`typeableText`), 32 KB sinir. Sayfa da uygulamaya `status` mesaji gonderir (uygulama acikken widget/Live Activity).
+
+## Ekran paylasimi - tam PC kontrolu (2026-10-28)
+- Karar: ekran yakalama / girdi enjeksiyonu TermFlow'a yazilmaz. Bilgisayarda bir VNC *servisi* (UltraVNC / TightVNC)
+  calisir, TermFlow yalnizca borudur. Sebep: oturum acma ekrani ve UAC (secure desktop) kullanici oturumunda kosan bir
+  Electron uygulamasi tarafindan ne goruntulenebilir ne de tuslanabilir; SYSTEM yetkisiyle kosan bir servis gerekir.
+  Boylece yakalama, kodlama, gecikme ayari ve kilit ekrani sorunlarinin hepsi hazir bir yerel servise devredilir.
+- Ayar: `settings.remote.screen = { enabled, port }` (varsayilan kapali, 5900). Masaustunde Ayarlar > Remote Access > Screen.
+- Akis: telefon `POST /api/screen-ticket` (cihaz anahtari + Origin) -> tek kullanimlik 15 sn'lik bilet; `ws://host/vnc?t=<bilet>`
+  yukseltmesi bileti harcar ve soket `127.0.0.1:<port>`'a baglanir (`src/main/remote/screenBridge.ts`). Bilet gerekir cunku
+  WebSocket yukseltmesi `Authorization` tasimaz ve uzun omurlu cihaz anahtari URL'ye yazilmaz.
+- Telefon istemcisi: `src/remote/src/views/ScreenShare.tsx`, noVNC (`@novnc/novnc`, MPL-2.0, bagimliligi ve install script'i yok).
+  `scaleViewport` ile ekrana sigar; alt barda Keyboard (iOS yazilim klavyesi gizli bir input'a odaklanir, `beforeinput` ->
+  `sendKey`), Ctrl+Alt+Del, yalniz izle, tam ekran (`:root[data-immersive]` ust/alt barlari gizler), kapat.
+- VNC parolasi hicbir yerde saklanmaz: `credentialsrequired` olayinda telefonda sorulur, sayfa kapaninca gider.
+- Kapsam disi: VNC servisini TermFlow'un kendisinin kurmasi/yonetmesi, port dinleme kontrolu, ses, dosya aktarimi, cok monitor
+  secimi (noVNC tum masaustunu tek goruntu olarak verir).

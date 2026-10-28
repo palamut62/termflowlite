@@ -1,23 +1,38 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { useRemote } from './store'
 
+/** Keeps a focused field visible once the on-screen keyboard has finished opening. */
+function revealFocused(e: React.FocusEvent): void {
+  const target = e.target as HTMLElement
+  if (!target.matches('input, textarea, select')) return
+  setTimeout(() => {
+    if (document.activeElement === target) target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, 300)
+}
+
 /** Bottom sheet; closes on backdrop tap and Escape. */
 export function Sheet({ title, onClose, children, actions }: { title: string; onClose(): void; children: ReactNode; actions?: ReactNode }): React.JSX.Element {
+  const downOnBackdrop = useRef(false)
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <section className="sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="sheet-backdrop"
+      // The keyboard shifts the layout mid-tap; only a tap that starts and ends on the backdrop closes (and loses the edits).
+      onPointerDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget }}
+      onClick={(e) => { if (downOnBackdrop.current && e.target === e.currentTarget && !document.activeElement?.matches('input, textarea, select')) onClose() }}
+    >
+      <section className="sheet" role="dialog" aria-modal="true" aria-label={title}>
         <header className="sheet-head">
           <h2>{title}</h2>
           {actions}
           <button className="icon-btn" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </header>
-        <div className="sheet-body">{children}</div>
+        <div className="sheet-body" onFocus={revealFocused}>{children}</div>
       </section>
     </div>
   )

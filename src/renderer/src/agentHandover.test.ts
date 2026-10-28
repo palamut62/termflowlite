@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS, type TerminalTab } from '../../shared/types'
-import { agentProfileOptions, findSessionForTab } from './agentHandover'
+import { agentProfileOptions, findSessionForTab, switchActivePermissionMode } from './agentHandover'
+import { useTerminalStore } from './store/terminalStore'
 
 const tab: TerminalTab = {
   id: 'tab', title: 'DeepSeek', profileId: 'provider:deepseek', running: true,
@@ -34,5 +35,27 @@ describe('agent handover selection', () => {
     expect(findSessionForTab(tab, 'claude', [
       { agent: 'claude', id: 'later', title: 'Later', cwd: 'C:\\repo', createdAt: 200_000, updatedAt: 200_000, profileId: 'provider:deepseek' }
     ])).toBeUndefined()
+  })
+})
+
+describe('switchActivePermissionMode', () => {
+  const stub = (sessions: unknown[], resume: (...args: unknown[]) => string) => {
+    vi.stubGlobal('window', { termflow: { agentSessions: { list: async () => sessions } } })
+    useTerminalStore.setState({ resumeAgentSession: resume } as never, false)
+  }
+
+  it('resumes the matching session with the new permission mode', async () => {
+    const calls: unknown[][] = []
+    stub([{ agent: 'claude', id: 'live', title: 'Live', cwd: 'C:\\repo', createdAt: 10_100, updatedAt: 11_000, profileId: 'provider:deepseek' }],
+      (...args) => { calls.push(args); return 'new-tab' })
+    await expect(switchActivePermissionMode(tab, 'claude', 'full')).resolves.toBe('resumed')
+    expect(calls[0]).toEqual(['provider:deepseek', { agent: 'claude', id: 'live', title: 'Live', cwd: 'C:\\repo', createdAt: 10_100, updatedAt: 11_000, profileId: 'provider:deepseek' }, 'C:\\repo', 'full'])
+  })
+
+  it('reports no-session when nothing can be resumed', async () => {
+    const calls: unknown[][] = []
+    stub([], (...args) => { calls.push(args); return '' })
+    await expect(switchActivePermissionMode(tab, 'claude', 'safe')).resolves.toBe('no-session')
+    expect(calls).toEqual([])
   })
 })

@@ -49,8 +49,8 @@ export const SECTIONS: { id: SectionId; label: string; icon: ReactNode; keywords
  */
 /** Agent IDE tam sayfa ayarlarinda menu gruplari (Orca: AI Capabilities, Set Up, Workflows, Interface). */
 const GROUPS: { label: string; ids: SectionId[] }[] = [
-  { label: 'AI Capabilities', ids: ['providers', 'orchestration', 'memory', 'voice', 'agent-security'] },
-  { label: 'Set Up', ids: ['profiles', 'health', 'workspaces', 'remote', 'backup'] },
+  { label: 'AI Capabilities', ids: ['providers', 'profiles', 'health', 'orchestration', 'memory', 'voice', 'agent-security'] },
+  { label: 'Set Up', ids: ['workspaces', 'remote', 'backup'] },
   { label: 'Workflows', ids: ['terminal', 'ssh'] },
   { label: 'Interface', ids: ['appearance', 'notifications', 'keyboard', 'stats'] },
   { label: 'About', ids: ['about'] }
@@ -104,9 +104,12 @@ export function Settings(): React.JSX.Element {
         <header className="settings-header">
           {fullPage && <button className="settings-btn settings-back" onClick={closeSettings}><ArrowLeft size={14} /> Back to app</button>}
           <span className="settings-header-title">Settings</span>
-          <button className="settings-icon-btn" onClick={closeSettings} aria-label="Close settings" title="Close (Esc)">
-            <X size={16} />
-          </button>
+          {/* Tam sayfada "Back to app" zaten kapatiyor; ikinci bir X gereksiz. */}
+          {!fullPage && (
+            <button className="settings-icon-btn" onClick={closeSettings} aria-label="Close settings" title="Close (Esc)">
+              <X size={16} />
+            </button>
+          )}
         </header>
         <div className="settings-body">
           <nav className="settings-nav">

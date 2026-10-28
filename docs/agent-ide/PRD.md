@@ -1,3 +1,5 @@
+> 2026-10-20: Kullanici istegiyle Floating Workspace (F3.3) uygulamadan kaldirildi. Asagidaki ilgili maddeler eski tasarimin tarihsel kaydidir.
+
 # TermFlow Agent IDE - PRD
 
 Durum: ONAYLANDI 2026-10-14 (kararlar bolum 12'de). Faz 0 basladi, dal `feature/agent-ide`.

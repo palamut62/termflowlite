@@ -68,7 +68,7 @@ export interface RemoteSavedCommand {
 
 // ---- Tab commands relayed to the desktop renderer ----
 export type RemoteTabCommand =
-  | { kind: 'open'; profileId: string; cwd?: string; launchCommand?: string; permissionMode?: AgentPermissionMode }
+  | { kind: 'open'; profileId: string; cwd?: string; launchCommand?: string; permissionMode?: AgentPermissionMode; elevated?: boolean }
   | { kind: 'close'; tabId: string }
   | { kind: 'rename'; tabId: string; title: string }
   | { kind: 'focus'; tabId: string }

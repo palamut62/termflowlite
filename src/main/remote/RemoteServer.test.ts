@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { createServer, type Server, type Socket } from 'net'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -16,6 +17,11 @@ let devices: DeviceStore
 let port: number
 let base: string
 const writes: string[] = []
+const typed: string[] = []
+let vnc: Server
+let vncPort: number
+let screenOn = true
+const vncSockets: Socket[] = []
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'tfl-remote-srv-'))
@@ -39,7 +45,18 @@ beforeAll(async () => {
     home: '/home/me'
   })
   hub.setTabs({ tabs: [{ id: 'tab1', title: 'pwsh', profileId: 'pwsh', running: true, activity: 'running', visible: true }], activeTabId: 'tab1' })
-  server = new RemoteServer({ staticDir: web, hub, devices, onPaired: () => undefined })
+  // Stands in for a VNC server on this computer: echoes bytes upper-cased.
+  vnc = createServer((socket) => {
+    vncSockets.push(socket)
+    socket.on('data', (chunk: Buffer) => socket.write(Buffer.from(chunk.toString().toUpperCase())))
+  })
+  await new Promise<void>((resolve) => vnc.listen(0, '127.0.0.1', resolve))
+  vncPort = (vnc.address() as { port: number }).port
+  server = new RemoteServer({ staticDir: web, uploadDir: join(dir, 'uploads'), hub, devices, onPaired: () => undefined, onPushAction: (token) => token === 'good',
+    status: () => ({ computer: 'pc', tabs: [{ id: 'tab1', title: 'pwsh', activity: 'waiting', agent: false }] }),
+    typeText: (text) => { typed.push(text); return true },
+    screenPort: () => screenOn ? vncPort : null
+  })
   port = 40000 + Math.floor(Math.random() * 20000)
   await server.start(HOST, port)
   base = `http://${HOST}:${port}`
@@ -47,6 +64,8 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await server.stop()
+  for (const socket of vncSockets) socket.destroy()
+  await new Promise<void>((resolve) => vnc.close(() => resolve()))
   rmSync(dir, { recursive: true, force: true })
 })
 
@@ -107,8 +126,52 @@ describe('RemoteServer', () => {
     ws.close()
   })
 
+  it('saves uploads from a paired phone only, never overwriting', async () => {
+    const send = (token: string, name: string, body: string, origin = base): Promise<Response> =>
+      fetch(`${base}/api/upload`, { method: 'POST', headers: { Origin: origin, Authorization: `Bearer ${token}`, 'X-File-Name': encodeURIComponent(name) }, body })
+    const { code } = devices.startPairing()
+    const { token } = await (await pair(code)).json() as { token: string }
+    expect((await send('x'.repeat(40), 'a.txt', 'hi')).status).toBe(401)
+    expect((await send(token, 'a.txt', 'hi', 'http://evil.example')).status).toBe(403)
+    const first = await (await send(token, '..\\..\\note one.txt', 'hello')).json() as { path: string }
+    const second = await (await send(token, 'note one.txt', 'again')).json() as { path: string }
+    expect(first.path).toBe(join(dir, 'uploads', 'note one.txt'))
+    expect(second.path).toBe(join(dir, 'uploads', 'note one (1).txt'))
+    expect(readFileSync(first.path, 'utf-8')).toBe('hello')
+  })
+
   it('refuses sockets from a foreign origin', async () => {
     await expect(open('http://evil.example')).rejects.toThrow('403')
+  })
+
+  it('bridges the screen socket for a paired phone with a fresh ticket only', async () => {
+    const ask = (token: string, origin = base): Promise<Response> =>
+      fetch(`${base}/api/screen-ticket`, { method: 'POST', headers: { Origin: origin, Authorization: `Bearer ${token}` } })
+    const openScreen = (query: string): Promise<WebSocket> => new Promise((resolve, reject) => {
+      const ws = new WebSocket(`ws://${HOST}:${port}/vnc${query}`, { headers: { Origin: base } })
+      ws.once('open', () => resolve(ws))
+      ws.once('error', reject)
+      ws.once('unexpected-response', (_req, res) => reject(new Error(`HTTP ${res.statusCode}`)))
+    })
+    const { code } = devices.startPairing()
+    const { token } = await (await pair(code)).json() as { token: string }
+    expect((await ask('x'.repeat(40))).status).toBe(401)
+    expect((await ask(token, 'http://evil.example')).status).toBe(403)
+    const { ticket } = await (await ask(token)).json() as { ticket: string }
+
+    await expect(openScreen('')).rejects.toThrow('403')
+    const ws = await openScreen(`?t=${ticket}`)
+    const echo = new Promise<string>((resolve) => ws.once('message', (data) => resolve(data.toString())))
+    ws.send(Buffer.from('rfb'))
+    expect(await echo).toBe('RFB')
+    ws.close()
+    // A ticket is spent by the socket that used it.
+    await expect(openScreen(`?t=${ticket}`)).rejects.toThrow('403')
+
+    screenOn = false
+    expect((await ask(token)).status).toBe(409)
+    await expect(openScreen('?t=none')).rejects.toThrow('403')
+    screenOn = true
   })
 })
 
@@ -126,6 +189,27 @@ describe('host and origin checks', () => {
     expect(sameOrigin('http://100.89.62.116:47321', '100.89.62.116:47321')).toBe(true)
     expect(sameOrigin('http://evil.example', '100.89.62.116:47321')).toBe(false)
     expect(sameOrigin(undefined, '100.89.62.116:47321')).toBe(false)
+  })
+
+  it('serves the iPhone widget status and types shared text, only for a paired device key', async () => {
+    const { code } = devices.startPairing()
+    const { token } = await (await pair(code)).json() as { token: string }
+    const status = (key: string): Promise<Response> => fetch(`${base}/api/status`, { headers: { Authorization: `Bearer ${key}` } })
+    const type = (key: string, body: string): Promise<Response> => fetch(`${base}/api/type`, { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body })
+    expect((await status('nope')).status).toBe(401)
+    expect(await (await status(token)).json()).toEqual({ computer: 'pc', tabs: [{ id: 'tab1', title: 'pwsh', activity: 'waiting', agent: false }] })
+    expect((await type('nope', '{"text":"x"}')).status).toBe(401)
+    expect((await type(token, '{"text":"   "}')).status).toBe(400)
+    expect((await type(token, '{"text":"see https://x.dev\\r\\nrm -rf /\\u001b[201~\\u0003"}')).status).toBe(200)
+    expect(typed).toEqual(['see https://x.dev rm -rf / [201~ '])
+  })
+
+  it('answers ntfy push buttons by their one-time token, without an Origin', async () => {
+    const tap = (body: string, method = 'POST'): Promise<Response> => fetch(`${base}/api/push-action`, { method, body: method === 'POST' ? body : undefined })
+    expect((await tap('{"token":"good"}')).status).toBe(200)
+    expect((await tap('{"token":"stale"}')).status).toBe(410)
+    expect((await tap('not json')).status).toBe(400)
+    expect((await tap('', 'GET')).status).toBe(405)
   })
 
   it('rate limits per address', () => {

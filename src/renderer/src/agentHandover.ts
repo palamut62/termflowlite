@@ -60,6 +60,23 @@ export async function continueAgentSession(
   return id
 }
 
+/**
+ * İzin seviyesi ajanın başlatma argümanıdır; çalışan oturum yerinde değiştirilemez.
+ * Aynı oturum aynı profille, yeni izin seviyesiyle yeni sekmede sürdürülür.
+ * Sürdürülecek transcript yoksa 'no-session' döner (çağıran varsayılanı değiştirir).
+ */
+export async function switchActivePermissionMode(
+  tab: TerminalTab,
+  agent: AgentKind,
+  mode: AgentPermissionMode
+): Promise<'resumed' | 'no-session'> {
+  const sessions = await window.termflow.agentSessions.list({ agents: [agent], limit: 100 })
+  const source = findSessionForTab(tab, agent, sessions)
+  if (!source) return 'no-session'
+  await continueAgentSession(source, { id: tab.profileId, name: tab.title, agent }, tab.cwd || tab.launchCwd, mode)
+  return 'resumed'
+}
+
 /** Aynı işi seçilen profil/provider ile yeni sekmede sürdürür; kaynak sekme geri dönüş için korunur. */
 export async function switchActiveAgentProfile(tab: TerminalTab, target: AgentProfileOption, sourceAgent: AgentKind): Promise<void> {
   const sessions = await window.termflow.agentSessions.list({ agents: [sourceAgent], limit: 100 })

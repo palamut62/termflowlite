@@ -40,9 +40,12 @@ export function raiseAttention(tabId: string, agent: AgentKind, kind: TabAttenti
   const store = useTerminalStore.getState()
   const tab = store.tabs.find((item) => item.id === tabId)
   if (!tab) return
-  const decision = alertDecision(kind, visibleTabIds().includes(tabId), document.hasFocus(), useSettingsStore.getState().settings.agentAlerts)
+  const settings = useSettingsStore.getState().settings
+  const decision = alertDecision(kind, visibleTabIds().includes(tabId), document.hasFocus(), settings.agentAlerts)
   if (decision.mark) store.markAttention(tabId, kind)
   if (decision.notify) window.termflow.window.notify({ tabId, title: alertTitle(agent, kind), body: detail ? `${tab.title}: ${detail}` : tab.title })
+  // Phone gets only the title and tab name, never the agent's message (it passes through the ntfy server).
+  if (decision.mark && settings.remote.push.enabled) window.termflow.alerts.pushPhone({ tabId, kind, title: alertTitle(agent, kind), body: tab.title })
   if (decision.sound) playAlert(kind)
 }
 

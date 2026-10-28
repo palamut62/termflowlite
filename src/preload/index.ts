@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import { IPC, type AgentSessionsQuery, type AppLaunchRequest, type GhOutcome, type GitHubPullRequest, type GitHubRepo, type GitHubStatus, type GitHubTask, type GitHubTaskFilter, type GitHubTaskKind, type GitRepoInfo, type GitStatus, type ScmAction, type ScmChecks, type ScmDiff, type ScmState, type ProjectInfo, type ProjectTask, type ResolvedPath,  type TitleBarOverlayPayload, type WidgetAction, type WidgetState, type CommandNotification, type CaptureRect, type MediaInfo, type WorktreeCreateRequest, type WorktreeEntry, type WorktreeOutcome, type WorktreeRemoveOutcome, type WorktreeRemoveRequest, type WorktreeSetupOutcome, type WorktreeSetupRequest, type WeatherPlace, type WeatherReading, type DirListing, type ResourceSnapshot, type FileSearchQuery, type FileSearchResult, type AttentionBadge } from '../shared/ipc'
+import type { ClaudeLogin } from '../shared/claudeAccounts'
+import { IPC, type AgentSessionsQuery, type AgentTask, type AppLaunchRequest, type GhOutcome, type GitHubPullRequest, type GitHubRepo, type GitHubStatus, type GitHubTask, type GitHubTaskFilter, type GitHubTaskKind, type GitRepoInfo, type GitStatus, type ScmAction, type ScmChecks, type ScmDiff, type ScmState, type ProjectInfo, type ProjectTask, type ResolvedPath,  type TitleBarOverlayPayload, type WidgetAction, type WidgetState, type CommandNotification, type CaptureRect, type MediaInfo, type WorktreeCreateRequest, type WorktreeEntry, type WorktreeOutcome, type WorktreeRemoveOutcome, type WorktreeRemoveRequest, type WorktreeSetupOutcome, type WorktreeSetupRequest, type WeatherPlace, type WeatherReading, type DirListing, type ResourceSnapshot, type FileSearchQuery, type FileSearchResult, type ProjectCreateResult, type AttentionBadge } from '../shared/ipc'
 import type { RemoteCommandReply, RemoteCommandRequest, RemoteDeviceInfo, RemotePairing, RemoteStatus, RemoteTabsState } from '../shared/remote'
 import type { AgentHookEvent } from '../shared/agentHooks'
 import type { AgentUsage } from '../shared/usage'
-import type { AgentEvent, AgentPermissionMode, AgentSession, AgentSessionRef, AppSettings, BackgroundPick, DelegatedTask, OrchestrationStatus, OrchestrationTarget, OrchestrationTestResult, MemoryAgent, MemoryConnection, MemoryProject, MemoryStatus, OpenRouterModelList, OpenRouterModelTest, PersistedSession, RenderMode, ShellInfo, SpeakResult, UpdateStatus, VoiceResult } from '../shared/types'
+import type { AgentUpdateSnapshot } from '../shared/agentUpdate'
+import type { AgentEvent, AgentPermissionMode, AgentSession, AgentSessionRef, AppSettings, BackgroundPick, DelegatedTask, OrchestrationStatus, OrchestrationTarget, OrchestrationTestResult, ElevationStatus, MemoryAgent, MemoryConnection, MemoryProject, MemoryStatus, OpenRouterModelList, OpenRouterModelTest, PersistedSession, RenderMode, ShellInfo, SpeakResult, TabAttention, UpdateStatus, VoiceResult } from '../shared/types'
 
 // Windows OS build number (e.g. 26200 for current Win11). xterm's windowsPty
 // option keys its reflow behaviour on this; fall back to a modern build when
@@ -52,8 +54,8 @@ const api = {
   },
   // ---- PTY ----
   pty: {
-    create: (tabId: string, profileId: string, cols: number, rows: number, cwd?: string, resumeSession?: AgentSessionRef, launchCommand?: string, permissionMode?: AgentPermissionMode, model?: string): Promise<{ pid: number }> =>
-      ipcRenderer.invoke(IPC.PTY_CREATE, tabId, profileId, cols, rows, cwd, resumeSession, launchCommand, permissionMode, model),
+    create: (tabId: string, profileId: string, cols: number, rows: number, cwd?: string, resumeSession?: AgentSessionRef, launchCommand?: string, permissionMode?: AgentPermissionMode, model?: string, elevated?: boolean): Promise<{ pid: number }> =>
+      ipcRenderer.invoke(IPC.PTY_CREATE, tabId, profileId, cols, rows, cwd, resumeSession, launchCommand, permissionMode, model, elevated),
     write: (tabId: string, data: string): void => ipcRenderer.send(IPC.PTY_WRITE, tabId, data),
     resize: (tabId: string, cols: number, rows: number): void =>
       ipcRenderer.send(IPC.PTY_RESIZE, tabId, cols, rows),
@@ -105,6 +107,9 @@ const api = {
     revoke: (deviceId: string | null): Promise<void> => ipcRenderer.invoke(IPC.REMOTE_REVOKE, deviceId),
     publishTabs: (state: RemoteTabsState): void => ipcRenderer.send(IPC.REMOTE_TABS, state),
     reply: (reply: RemoteCommandReply): void => ipcRenderer.send(IPC.REMOTE_COMMAND_REPLY, reply),
+    elevationStatus: (): Promise<ElevationStatus> => ipcRenderer.invoke(IPC.ELEVATION_STATUS),
+    enableElevation: (pin: string): Promise<void> => ipcRenderer.invoke(IPC.ELEVATION_ENABLE, pin),
+    disableElevation: (): Promise<void> => ipcRenderer.invoke(IPC.ELEVATION_DISABLE),
     onCommand: (cb: (request: RemoteCommandRequest) => void): (() => void) => {
       const h = (_e: unknown, request: RemoteCommandRequest): void => cb(request)
       ipcRenderer.on(IPC.REMOTE_COMMAND, h)
@@ -121,6 +126,15 @@ const api = {
     has: (providerId: string): Promise<boolean> => ipcRenderer.invoke(IPC.PROVIDER_SECRET_STATUS, providerId),
     set: (providerId: string, secret: string): Promise<boolean> => ipcRenderer.invoke(IPC.PROVIDER_SECRET_SET, providerId, secret),
     delete: (providerId: string): Promise<void> => ipcRenderer.invoke(IPC.PROVIDER_SECRET_DELETE, providerId)
+  },
+  agentUpdates: {
+    status: (): Promise<AgentUpdateSnapshot> => ipcRenderer.invoke(IPC.AGENTS_UPDATE_STATUS),
+    run: (): Promise<AgentUpdateSnapshot> => ipcRenderer.invoke(IPC.AGENTS_UPDATE_RUN),
+    onChanged: (cb: (s: AgentUpdateSnapshot) => void): (() => void) => {
+      const h = (_e: unknown, s: AgentUpdateSnapshot): void => cb(s)
+      ipcRenderer.on(IPC.AGENTS_UPDATE_EVENT, h)
+      return () => ipcRenderer.removeListener(IPC.AGENTS_UPDATE_EVENT, h)
+    }
   },
   detectAgents: (): Promise<string[]> => ipcRenderer.invoke(IPC.AGENTS_DETECT),
   profileHealth: (id: string, connection = false): Promise<{ label: string; ok: boolean; detail: string }[]> => ipcRenderer.invoke(IPC.PROFILE_HEALTH, id, connection),
@@ -187,7 +201,11 @@ const api = {
   /** Read-only folder listing for the file panel. */
   files: {
     list: (dir: string, showHidden: boolean): Promise<DirListing | null> => ipcRenderer.invoke(IPC.FILES_LIST, dir, showHidden),
-    search: (dir: string, query: FileSearchQuery): Promise<FileSearchResult> => ipcRenderer.invoke(IPC.FILES_SEARCH, dir, query)
+    search: (dir: string, query: FileSearchQuery): Promise<FileSearchResult> => ipcRenderer.invoke(IPC.FILES_SEARCH, dir, query),
+    linkClaudeAccount: (dir: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke(IPC.CLAUDE_ACCOUNT_LINK, dir),
+    detectClaudeLogins: (): Promise<ClaudeLogin[]> => ipcRenderer.invoke(IPC.CLAUDE_ACCOUNT_DETECT),
+    suggestClaudeDir: (name: string): Promise<string> => ipcRenderer.invoke(IPC.CLAUDE_ACCOUNT_SUGGEST, name),
+    createProject: (parent: string, name: string): Promise<ProjectCreateResult> => ipcRenderer.invoke(IPC.PROJECT_CREATE, parent, name)
   },
   /** Live weather for the agent character (Open-Meteo, from the main process). */
   weather: {
@@ -203,7 +221,8 @@ const api = {
   agentSessions: {
     warnings: (): Promise<string[]> => ipcRenderer.invoke(IPC.AGENT_SESSION_WARNINGS),
     list: (query: AgentSessionsQuery = {}): Promise<AgentSession[]> => ipcRenderer.invoke(IPC.AGENT_SESSIONS_LIST, query),
-    handover: (session: AgentSessionRef): Promise<string> => ipcRenderer.invoke(IPC.AGENT_SESSION_HANDOVER, session)
+    handover: (session: AgentSessionRef): Promise<string> => ipcRenderer.invoke(IPC.AGENT_SESSION_HANDOVER, session),
+    tasks: (sessionId: string): Promise<AgentTask[]> => ipcRenderer.invoke(IPC.AGENT_TASKS_LIST, sessionId)
   },
   /** Agent Memory: 30-day per-project memory and the agent MCP connections. */
   memory: {
@@ -262,7 +281,11 @@ const api = {
   alerts: {
     pickSound: (): Promise<{ file: string } | { error: string } | null> => ipcRenderer.invoke(IPC.ALERTS_PICK_SOUND),
     loadSound: (file: string): Promise<Uint8Array | null> => ipcRenderer.invoke(IPC.ALERTS_LOAD_SOUND, file),
-    setBadge: (badge: AttentionBadge): void => ipcRenderer.send(IPC.WINDOW_ATTENTION, badge)
+    setBadge: (badge: AttentionBadge): void => ipcRenderer.send(IPC.WINDOW_ATTENTION, badge),
+    /** ntfy push to the phone; server and topic come from main-process settings. */
+    pushPhone: (event: { tabId: string; kind: TabAttention; title: string; body: string }): void => ipcRenderer.send(IPC.ALERTS_PHONE_PUSH, event),
+    /** Sends a test push; resolves to an error text or null. */
+    testPhonePush: (): Promise<string | null> => ipcRenderer.invoke(IPC.ALERTS_PHONE_PUSH_TEST)
   },
   scrollback: {
     save: (tabId: string, data: string): void => ipcRenderer.send(IPC.SCROLLBACK_SAVE, tabId, data),

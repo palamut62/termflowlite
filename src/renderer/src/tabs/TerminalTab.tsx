@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { Layers, X } from 'lucide-react'
 import type { TerminalTab as TerminalTabModel } from '../../../shared/types'
 import { TabIcon } from './TabIcon'
 import { ATTENTION_LABELS } from '../attention/AttentionBell'
+import { activeTasks, openTaskTab, useAgentTasks } from './agentTasks'
 
 interface TerminalTabProps {
   tab: TerminalTabModel
@@ -43,6 +44,7 @@ export function TerminalTab({
   const [draft, setDraft] = useState(tab.title)
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const live = activeTasks(useAgentTasks(tab.agentHook?.sessionId), Date.now())
 
   useEffect(() => {
     if (editing) {
@@ -137,6 +139,17 @@ export function TerminalTab({
           className={`tab-result-flash ${tab.lastCommand.exitCode === 0 ? 'tab-result-ok' : 'tab-result-fail'}`}
           aria-hidden="true"
         />
+      )}
+      {live.length > 0 && (
+        <button
+          className="tab-tasks"
+          onClick={(e) => { e.stopPropagation(); for (const task of live) openTaskTab(task, tab.cwd || tab.launchCwd) }}
+          onDoubleClick={(e) => e.stopPropagation()}
+          title={`${live.length} background task${live.length === 1 ? '' : 's'} or subagent${live.length === 1 ? '' : 's'} with recent output - click to watch each in its own tab`}
+          aria-label={`Watch ${live.length} background task${live.length === 1 ? '' : 's'} or subagent${live.length === 1 ? '' : 's'}`}
+        >
+          <Layers size={10} aria-hidden="true" />{live.length}
+        </button>
       )}
       {tab.attention && <span className={`tab-attention tab-attention-${tab.attention}`} role="status" aria-label={ATTENTION_LABELS[tab.attention]} title={ATTENTION_LABELS[tab.attention]} />}
       <span className={`tab-process-indicator tab-activity-${tab.activity}`} aria-label={`Activity: ${tab.activity}`} title={`Activity: ${tab.activity}`} />

@@ -28,9 +28,15 @@ export const IPC = {
   REMOTE_TABS: 'remote:tabs', // renderer -> main RemoteTabsState
   REMOTE_COMMAND: 'remote:command', // main -> renderer RemoteCommandRequest
   REMOTE_COMMAND_REPLY: 'remote:command-reply', // renderer -> main RemoteCommandReply
+  ELEVATION_STATUS: 'elevation:status', // -> ElevationStatus
+  ELEVATION_ENABLE: 'elevation:enable', // (pin) one UAC prompt on the PC
+  ELEVATION_DISABLE: 'elevation:disable', // () one UAC prompt on the PC
   PROVIDER_SECRET_STATUS: 'provider-secret:status', // (providerId) -> boolean
   PROVIDER_SECRET_HEALTH: 'provider-secret:health',
   PROFILE_HEALTH: 'profile:health',
+  AGENTS_UPDATE_STATUS: 'agents:update-status', // () -> AgentUpdateSnapshot
+  AGENTS_UPDATE_RUN: 'agents:update-run', // () -> AgentUpdateSnapshot (hemen kontrol)
+  AGENTS_UPDATE_EVENT: 'agents:update-event', // main -> renderer AgentUpdateSnapshot
   AGENTS_DETECT: 'agents:detect', // () -> kurulu yerlesik ajan profil id'leri
   PROVIDER_SECRET_SET: 'provider-secret:set', // (providerId, secret) -> boolean
   PROVIDER_SECRET_DELETE: 'provider-secret:delete', // (providerId) -> void
@@ -84,9 +90,14 @@ export const IPC = {
   FILES_SEARCH: 'files:search', // (dir, FileSearchQuery) -> FileSearchResult — git grep
   TASKS_DISCOVER: 'tasks:discover',
   PROJECT_DETECT: 'project:detect',
+  CLAUDE_ACCOUNT_LINK: 'claude-account:link', // (configDir) -> { ok, error? } - shares projects/skills with the default account
+  CLAUDE_ACCOUNT_DETECT: 'claude-account:detect', // () -> ClaudeLogin[] - signed-in Claude subscriptions
+  CLAUDE_ACCOUNT_SUGGEST: 'claude-account:suggest', // (name) -> default config folder path
+  PROJECT_CREATE: 'project:create', // (parent, name) -> ProjectCreateResult — mkdir for the New project dialog
   AGENT_SESSIONS_LIST: 'agent-sessions:list',
   AGENT_SESSION_WARNINGS: 'agent-sessions:warnings',
   AGENT_SESSION_HANDOVER: 'agent-sessions:handover',
+  AGENT_TASKS_LIST: 'agent-sessions:tasks',
   MEMORY_STATUS: 'memory:status', // -> MemoryStatus
   MEMORY_STATUS_EVENT: 'memory:status-event', // main -> renderer MemoryStatus
   MEMORY_RUN: 'memory:run', // () -> MemoryStatus; elle "Update now"
@@ -121,6 +132,8 @@ export const IPC = {
   /** agent-attention: ozel ses sec / baytlarini al, gorev cubugu rozeti. */
   ALERTS_PICK_SOUND: 'alerts:pick-sound',
   ALERTS_LOAD_SOUND: 'alerts:load-sound',
+  ALERTS_PHONE_PUSH: 'alerts:phone-push',
+  ALERTS_PHONE_PUSH_TEST: 'alerts:phone-push-test',
   WINDOW_ATTENTION: 'window:attention',
   DIALOG_PICK_THEME: 'dialog:pick-theme',
   /** scrollback-restore */
@@ -166,6 +179,18 @@ export interface PtyCreatePayload {
   profileId: string
   cols: number
   rows: number
+}
+
+/** Claude Code arka plan isi: shell gorevinin cikti dosyasi (Bash run_in_background) ya da alt ajan dokumu (JSONL). */
+export interface AgentTask {
+  id: string
+  path: string
+  size: number
+  mtimeMs: number
+  /** Yalniz alt ajan: gorunen ad (aciklama, ajan turu ya da id). */
+  label?: string
+  /** Shell ciktisini veya alt ajan JSONL'ini canli akitan izleme komutu. */
+  command?: string
 }
 
 export interface AgentSessionsQuery {
@@ -321,6 +346,7 @@ export interface ResourceSnapshot {
 /** Explorer "Contents" search (Agent IDE). include/exclude: comma separated globs. */
 export interface FileSearchQuery { text: string; caseSensitive?: boolean; word?: boolean; regex?: boolean; include?: string; exclude?: string }
 export interface FileSearchFile { path: string; absolute: string; matches: { line: number; text: string }[] }
+export type ProjectCreateResult = { ok: true; path: string } | { ok: false; error: string }
 export interface FileSearchResult { files: FileSearchFile[]; truncated: boolean; error?: string }
 
 /** A city resolved for live weather (coordinates rounded to two decimals). */

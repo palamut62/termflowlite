@@ -4,6 +4,7 @@ import { TerminalSecretRedactor } from '../../shared/secretRedaction'
 import { resolveShell } from './ShellDiscovery'
 import { applyShellIntegration } from './shellIntegration'
 import { executablePath, isWindowsExecutable } from './cli'
+import { spawnElevated } from './elevation'
 
 const ACTIVE_INTERVAL_MS = 16 // PRD §11.6 IPC batching for the focused terminal
 const DEFAULT_SCROLLBACK_LINES = 10000 // PRD §10.9.1
@@ -81,14 +82,16 @@ export class PtyCore {
     Object.assign(resolved, applyShellIntegration(resolved, input))
     const cols = input.cols && input.cols > 0 ? Math.floor(input.cols) : 120
     const rows = input.rows && input.rows > 0 ? Math.floor(input.rows) : 30
-    const proc = pty.spawn(resolved.shell, resolved.args, {
-      name: 'xterm-256color',
-      cols,
-      rows,
-      cwd: resolved.cwd,
-      env: resolved.env,
-      useConpty: true
-    })
+    const proc = input.elevated
+      ? spawnElevated({ file: resolved.shell, args: resolved.args, cwd: resolved.cwd, env: resolved.env, cols, rows })
+      : pty.spawn(resolved.shell, resolved.args, {
+        name: 'xterm-256color',
+        cols,
+        rows,
+        cwd: resolved.cwd,
+        env: resolved.env,
+        useConpty: true
+      })
 
     const secretRedactor = new TerminalSecretRedactor()
     for (const name of input.secretEnvNames ?? []) {
@@ -113,6 +116,11 @@ export class PtyCore {
       secretRedactor
     }
     this.terminals.set(id, managed)
+    // The renderer opens plain tabs without a folder (the startup directory is
+    // resolved here, in profileToInput), so its tab has no path and the Projects
+    // tree cannot place the session. Report the spawn folder once; OSC 7 keeps it
+    // current afterwards.
+    if (resolved.cwd) this.emit({ kind: 'cwd', ptyId: id, cwd: resolved.cwd })
 
     proc.onData((data) => {
       this.onData(managed, data)

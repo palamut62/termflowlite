@@ -12,6 +12,8 @@ export interface AgentHookEvent {
   state?: AgentHookState
   sessionId?: string
   detail?: string
+  /** The turn failed because the subscription's usage limit was reached. */
+  limit?: boolean
 }
 
 const SESSION_ID = /^[\w-]{1,100}$/
@@ -26,6 +28,14 @@ export function summaryLine(value: unknown, max = 160): string | undefined {
   if (typeof value !== 'string') return undefined
   const line = value.split(/\r?\n/).map((part) => part.replace(/^[#>*\-\s`]+/, '').trim()).find(Boolean)
   return line ? redactApiKeys(line).slice(0, max) : undefined
+}
+
+const LIMIT_TEXT = /usage limit|limit reached|hit your limit|rate.?limit/i
+
+/** StopFailure payload: `error` is the failure kind (rate_limit), the texts carry the human message. */
+function isUsageLimit(input: Record<string, unknown>): boolean {
+  const text = [input.error, input.error_details, input.message].filter((v): v is string => typeof v === 'string').join(' ')
+  return LIMIT_TEXT.test(text)
 }
 
 /** Claude Code hook JSON'u (POST govdesi) -> olay. Bilinmeyen olay null. */
@@ -47,7 +57,7 @@ export function claudeHookEvent(raw: unknown): AgentHookEvent | null {
     case 'Stop':
       return { ...base, state: 'done', detail: summaryLine(input.last_assistant_message) }
     case 'StopFailure':
-      return { ...base, state: 'error', detail: summaryLine(input.error ?? input.message) ?? 'The turn ended with an API error' }
+      return { ...base, state: 'error', detail: summaryLine(input.error ?? input.message) ?? 'The turn ended with an API error', ...(isUsageLimit(input) ? { limit: true } : {}) }
     default:
       return null
   }

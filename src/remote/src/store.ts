@@ -3,7 +3,7 @@ import type { RemoteSettingsView, RemoteTab, ServerMessage } from '../../shared/
 import type { AppSettings, ShellInfo } from '../../shared/types'
 import type { ConnectionState, RemoteClient } from './client'
 
-export type Screen = 'home' | 'workspaces' | 'terminal' | 'agents' | 'project' | 'settings'
+export type Screen = 'home' | 'workspaces' | 'terminal' | 'agents' | 'project' | 'desktop' | 'settings'
 
 interface Toast {
   id: number

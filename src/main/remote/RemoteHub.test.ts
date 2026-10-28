@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_SETTINGS, type AppSettings, type PtyEvent } from '../../shared/types'
+import { DEFAULT_SETTINGS, type AppSettings, type ElevationStatus, type PtyEvent } from '../../shared/types'
 import { IPC } from '../../shared/ipc'
 import type { RemoteTabCommand, ServerMessage } from '../../shared/remote'
 import { RemoteHub, tailSnapshot, type RemoteConnection } from './RemoteHub'
 
 const TOKEN = 'a'.repeat(43)
 
-function setup() {
+function setup(elevation?: { status(): Promise<ElevationStatus>; grant(pin: string): void }) {
   let output: (event: PtyEvent) => void = () => undefined
   let sizeChange: (id: string, size: { cols: number; rows: number }) => void = () => undefined
   const sizes: [string, { cols: number; rows: number } | null][] = []
@@ -46,7 +46,8 @@ function setup() {
     onClientsChanged: () => undefined,
     platform: 'win32',
     version: '1.0.0',
-    home: '/home/me'
+    home: '/home/me',
+    elevation
   })
   hub.setTabs({ tabs: [{ id: 'tab1', title: 'pwsh', profileId: 'pwsh', running: true, activity: 'running', visible: true }], activeTabId: 'tab1' })
 
@@ -211,6 +212,33 @@ describe('RemoteHub', () => {
       { kind: 'resume', profileId: 'claude', session: { agent: 'claude', id: 'abc-1' }, cwd: undefined, permissionMode: undefined }
     ])
     expect(p.sent.find((m) => m.t === 'result' && m.id === 8)).toMatchObject({ ok: false, error: 'Invalid tab' })
+  })
+
+  it('opens an administrator tab only when the PC set it up, passing the PIN on', async () => {
+    const pins: string[] = []
+    let status: ElevationStatus = 'off'
+    const { phone, commands } = setup({ status: async () => status, grant: (pin) => { pins.push(pin) } })
+    const p = phone()
+    await p.send({ t: 'auth', token: TOKEN })
+    await p.send({ t: 'call', id: 1, method: 'tab.open', params: { profileId: 'pwsh', elevated: true, pin: '123456' } })
+    expect(p.sent.at(-1)).toMatchObject({ t: 'result', id: 1, ok: false })
+    status = 'on'
+    await p.send({ t: 'call', id: 2, method: 'elevation.status' })
+    expect(p.sent.at(-1)).toEqual({ t: 'result', id: 2, ok: true, value: 'on' })
+    await p.send({ t: 'call', id: 3, method: 'tab.open', params: { profileId: 'pwsh', elevated: true, pin: '123456' } })
+    expect(pins).toEqual(['123456'])
+    expect(commands).toEqual([{ kind: 'open', profileId: 'pwsh', cwd: undefined, launchCommand: undefined, permissionMode: undefined, elevated: true }])
+  })
+
+  it('reports administrator tabs as unsupported without an elevation backend', async () => {
+    const { phone, commands } = setup()
+    const p = phone()
+    await p.send({ t: 'auth', token: TOKEN })
+    await p.send({ t: 'call', id: 1, method: 'elevation.status' })
+    expect(p.sent.at(-1)).toEqual({ t: 'result', id: 1, ok: true, value: 'unsupported' })
+    await p.send({ t: 'call', id: 2, method: 'tab.open', params: { profileId: 'pwsh', elevated: true, pin: '123456' } })
+    expect(p.sent.at(-1)).toMatchObject({ ok: false })
+    expect(commands).toEqual([])
   })
 
   it('revokes connected devices immediately', async () => {

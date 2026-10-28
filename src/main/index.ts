@@ -25,6 +25,7 @@ import { registerFilesIpc } from './ipc/files'
 import { registerTasksIpc } from './ipc/tasks'
 import { registerProjectIpc } from './ipc/project'
 import { registerAgentSessionsIpc } from './ipc/agentSessions'
+import type { TranscriptFollower } from './agentTasks'
 import { registerSessionIpc } from './ipc/session'
 import { registerUpdaterIpc } from './ipc/updater'
 import { registerAgentEventsIpc } from './ipc/agentEvents'
@@ -35,6 +36,7 @@ import { MemoryEngine } from './memory/engine'
 import { MemoryStore } from './memory/store'
 import { appExecutable, installServerScript, serverLaunch, type ServerLaunch } from './memory/connect'
 import { ProviderSecretStore } from './storage/ProviderSecretStore'
+import { AgentUpdater } from './agentUpdater'
 import { registerProfileHealth } from './ipc/profileHealth'
 import { AgentEventStore } from './storage/AgentEventStore'
 import { AgentSessionOwnershipStore } from './storage/AgentSessionOwnershipStore'
@@ -53,6 +55,7 @@ import { AgentHookServer } from './agentHooks/hookServer'
 import { EDITION, PRODUCT } from '../shared/edition'
 import { readClaudeUsage, readCodexUsage } from './usage/agentUsage'
 import { registerRemoteIpc } from './ipc/remote'
+import { ELEVATED_HOST_FLAG, elevationStatus, grantElevation, runElevatedHost } from './terminal/elevation'
 import { registerVoiceIpc } from './ipc/voice'
 import { registerOrchestrationIpc, sendOrchestrationTasks, type OrchestrationController } from './ipc/orchestration'
 import { OrchestrationService } from './orchestration/service'
@@ -83,6 +86,12 @@ if (EDITION === 'ide') {
 }
 if (process.env.TERMFLOW_E2E === '1') {
   app.setPath('userData', process.env.TERMFLOW_E2E_USER_DATA || join(app.getPath('temp'), `termflow-lite-e2e-${process.pid}`))
+}
+// Started elevated by the admin-tab task: relay one shell, no window, no app state.
+const elevatedHost = process.argv.includes(ELEVATED_HOST_FLAG)
+if (elevatedHost) {
+  app.setPath('userData', join(app.getPath('temp'), `${PRODUCT.slug}-elevated-${process.pid}`))
+  void runElevatedHost().finally(() => app.exit(0))
 }
 
 let mainWindow: BrowserWindow | null = null
@@ -134,6 +143,12 @@ function applyTrayConfig(settings: AppSettings): void {
     onQuit: quitApp,
     isWindowVisible: () => Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible())
   })
+}
+
+/** Sistem başlangıcında açılma; dev/E2E koşusunda kayıt yapılmaz (electron.exe'yi kaydederdi). */
+function applyLoginItem(settings: AppSettings): void {
+  if (!app.isPackaged || process.env.TERMFLOW_E2E === '1') return
+  app.setLoginItemSettings({ openAtLogin: settings.launchAtLogin })
 }
 
 // ---- Quake (açılır) mod durumu ----
@@ -211,8 +226,10 @@ function showMainWindow(): void {
 
 // Single-instance: focus the existing window instead of spawning a second
 // process that would fight over the userData/cache locks.
-const gotLock = app.requestSingleInstanceLock({ launchRequest: initialLaunchRequest })
-if (!gotLock) {
+const gotLock = !elevatedHost && app.requestSingleInstanceLock({ launchRequest: initialLaunchRequest })
+if (elevatedHost) {
+  // no lock: it runs next to the normal app
+} else if (!gotLock) {
   app.quit()
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
@@ -336,6 +353,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  if (elevatedHost) return
   // Remote Access reuses the validated IPC handlers; record them before any registration.
   recordIpcHandlers()
   // Windows bildirimleri kısayoldaki AppUserModelID ile eşleşmeli (electron-builder appId).
@@ -381,8 +399,7 @@ app.whenReady().then(() => {
   // İmza yalnızca BAŞARILI sync sonrası güncellenir — hatalı deneme tekrarlanır.
   let lastMenuSignature: string | null = null
   const refreshContextMenu = (): void => {
-    // shortcut: IDE surumu Explorer menusu yazmaz (Lite'in TermFlowLite anahtarlarini ezerdi); ayri anahtarlar Faz 3+.
-    if (!app.isPackaged || !settingsStore || EDITION === 'ide') return
+    if (!app.isPackaged || !settingsStore) return
     const signature = explorerMenuSignature(settingsStore.get(), currentShells)
     if (signature === lastMenuSignature) return
     void syncExplorerContextMenu(process.execPath, process.resourcesPath, settingsStore.get(), currentShells)
@@ -456,6 +473,7 @@ app.whenReady().then(() => {
     refreshContextMenu()
     applyQuakeConfig(settings)
     applyTrayConfig(settings)
+    applyLoginItem(settings)
     if (settings.memory.enabled && !memoryWasEnabled) void memoryEngine.run().catch(() => undefined)
     memoryWasEnabled = settings.memory.enabled
     remoteController?.settingsChanged(settings)
@@ -480,7 +498,11 @@ app.whenReady().then(() => {
     return WIDGET_ACTIONS.includes(action as never) ? widget.handle(action as (typeof WIDGET_ACTIONS)[number]) : widget.state()
   })
   registerDialogIpc(() => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null))
-  registerAlertsIpc(() => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null))
+  registerAlertsIpc(
+    () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null),
+    () => settingsStore?.get().remote.push ?? null,
+    (tabId) => remoteController?.pushActions(tabId)
+  )
   // scrollback-restore: yalniz geri yuklenecek oturumun sekmeleri kalir, gerisi silinir.
   const scrollbackStore = new ScrollbackStore(join(app.getPath('userData'), 'scrollback'))
   const scrollbackEnabled = (): boolean => Boolean(settingsStore?.get().restoreScrollback && settingsStore.get().restoreSession)
@@ -494,7 +516,14 @@ app.whenReady().then(() => {
   registerFilesIpc()
   registerTasksIpc()
   registerProjectIpc()
-  registerAgentSessionsIpc(agentSessionOwnership)
+  let follower: TranscriptFollower | null = null
+  try {
+    const script = installServerScript(join(app.getAppPath(), 'out', 'mcp', 'follow-transcript.cjs'), join(app.getPath('userData'), 'mcp'), 'follow-transcript.cjs')
+    follower = { exe: appExecutable(), script }
+  } catch (error) {
+    console.warn('[agent-tasks] transcript follower could not be installed:', error)
+  }
+  registerAgentSessionsIpc(agentSessionOwnership, follower)
   registerSessionIpc(sessionStore)
   registerUpdaterIpc()
   registerAgentEventsIpc(new AgentEventStore(app.getPath('userData')))
@@ -588,6 +617,7 @@ app.whenReady().then(() => {
   remoteController = new RemoteController({
     devicesFile: join(app.getPath('userData'), 'remote-devices.json'),
     staticDir: join(__dirname, '../remote'),
+    uploadDir: join(app.getPath('downloads'), 'TermFlow Uploads'),
     terminals: mgr,
     invokeIpc: invokeRecorded,
     getSettings: () => store.get(),
@@ -602,6 +632,7 @@ app.whenReady().then(() => {
     pushStatus: (status) => liveWindow()?.webContents.send(IPC.REMOTE_STATUS_EVENT, status),
     platform: process.platform,
     version: app.getVersion(),
+    elevation: { status: elevationStatus, grant: grantElevation },
     // E2E only: bind to a loopback address instead of requiring Tailscale.
     findAddress: process.env.TERMFLOW_E2E === '1' && process.env.TERMFLOW_E2E_REMOTE_HOST
       ? () => process.env.TERMFLOW_E2E_REMOTE_HOST ?? null
@@ -609,10 +640,17 @@ app.whenReady().then(() => {
   })
   registerRemoteIpc(remoteController)
 
+  // Ajan CLI'lari arka planda guncellenir (acilista + gunde bir); E2E'de kapali.
+  const agentUpdater = new AgentUpdater((snapshot) => liveWindow()?.webContents.send(IPC.AGENTS_UPDATE_EVENT, snapshot))
+  ipcMain.handle(IPC.AGENTS_UPDATE_STATUS, () => agentUpdater.snapshot())
+  ipcMain.handle(IPC.AGENTS_UPDATE_RUN, () => agentUpdater.run())
+  if (process.env.TERMFLOW_E2E !== '1') agentUpdater.schedule(() => settingsStore?.get().autoUpdateAgents !== false)
+
   createWindow()
   void remoteController.apply(settingsStore.get())
   applyQuakeConfig(settingsStore.get())
   applyTrayConfig(settingsStore.get())
+  applyLoginItem(settingsStore.get())
 
   // Sessiz güncelleme kontrolü: pencere yüklendikten ~10 sn SONRA, bir kez.
   // Açılış hızını etkilememesi için kritik yolun dışında tutulur.

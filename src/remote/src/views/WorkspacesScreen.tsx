@@ -11,6 +11,9 @@ const norm = (path: string): string => path.replace(/\\/g, '/').replace(/\/+$/, 
 interface Workspace { key: string; name: string; branch?: string; child: boolean; tabs: RemoteTab[] }
 interface Project { key: string; name: string; workspaces: Workspace[] }
 
+/** Tabs of one workspace (worktree or folder) share this key. */
+export const workspaceKey = (tab: RemoteTab): string => norm(tab.worktree?.path || tab.cwd || '')
+
 /** Tabs -> project (repository or folder) -> workspace (worktree or folder), in the order the tabs appear. */
 export function groupWorkspaces(tabs: readonly RemoteTab[]): Project[] {
   const projects = new Map<string, Project>()
@@ -20,7 +23,7 @@ export function groupWorkspaces(tabs: readonly RemoteTab[]): Project[] {
     let project = projects.get(projectKey)
     if (!project) { project = { key: projectKey, name: folderName(root) || 'No folder', workspaces: [] }; projects.set(projectKey, project) }
     const place = tab.worktree?.path || tab.cwd || ''
-    const key = norm(place)
+    const key = workspaceKey(tab)
     let workspace = project.workspaces.find((w) => w.key === key)
     if (!workspace) {
       workspace = { key, name: tab.worktree?.branch || folderName(place) || tab.title, branch: tab.worktree?.branch, child: Boolean(tab.worktree), tabs: [] }

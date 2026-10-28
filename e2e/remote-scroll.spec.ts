@@ -58,6 +58,9 @@ async function swipe(from: number, to: number, x = 200): Promise<void> {
 test('dragging a finger on the phone terminal scrolls the history', async () => {
   const pairing = await win.evaluate(() => window.termflow.remote.pair())
   await phone.goto(pairing.url)
+  // The phone opens on its Home screen (9b3e651); go to Terminal first, like remote.spec.ts.
+  await expect(phone.locator('.home-title')).toBeVisible({ timeout: 15_000 })
+  await phone.getByRole('button', { name: 'Terminal', exact: true }).click()
   await expect(phone.locator('.tab-chip.active')).toBeVisible({ timeout: 15_000 })
   await phone.locator('.compose-input').fill('1..300 | ForEach-Object { "scrollline$_" }')
   await phone.locator('.send').click()
