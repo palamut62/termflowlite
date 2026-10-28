@@ -116,10 +116,11 @@ export class PtyCore {
       secretRedactor
     }
     this.terminals.set(id, managed)
-    // The renderer opens plain tabs without a cwd (startup directory lives here),
-    // so its tab has no path and the Projects tree cannot place the session.
-    // Report the resolved folder once; OSC 7 keeps it current afterwards.
-    if (!input.cwd && resolved.cwd) this.emit({ kind: 'cwd', ptyId: id, cwd: resolved.cwd })
+    // The renderer opens plain tabs without a folder (the startup directory is
+    // resolved here, in profileToInput), so its tab has no path and the Projects
+    // tree cannot place the session. Report the spawn folder once; OSC 7 keeps it
+    // current afterwards.
+    if (resolved.cwd) this.emit({ kind: 'cwd', ptyId: id, cwd: resolved.cwd })
 
     proc.onData((data) => {
       this.onData(managed, data)
