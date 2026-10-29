@@ -582,62 +582,7 @@ body {
   z-index: 5;
 }
 
-/* ---- Agent companion (AgentCompanion.tsx): karakter animasyonu, terminalin sağında ---- */
 .terminal-view { container-type: inline-size; }
-
-.agent-companion {
-  position: relative;
-  flex: 0 0 clamp(220px, 26%, 340px);
-  min-width: 0;
-  margin: calc(-1 * var(--terminal-padding, 8px)) calc(-1 * var(--terminal-padding, 8px)) 0 var(--terminal-padding, 8px);
-  border-left: 1px solid color-mix(in srgb, var(--widget-border) 45%, transparent);
-  /* The kit's stage color; the character palettes are tuned against it. */
-  background: #0c1015;
-  overflow: hidden;
-  user-select: none;
-}
-
-/* Her iki stil de (ASCII / piksel) aynı karakter çizimini tek tuvale basar. */
-.agent-companion-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.agent-companion .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.agent-companion-close {
-  position: absolute;
-  z-index: 1;
-  top: 6px;
-  right: 6px;
-  display: inline-flex;
-  padding: 3px;
-  color: var(--tab-inactive-foreground);
-  background: transparent;
-  border: 0;
-  border-radius: 3px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity .15s ease;
-}
-
-.agent-companion:hover .agent-companion-close,
-.agent-companion-close:focus-visible { opacity: 1; }
-.agent-companion-close:hover { color: var(--app-foreground); background: color-mix(in srgb, currentColor 12%, transparent); }
-
-/* Dar pane'lerde terminale yer bırak. */
-@container (max-width: 640px) {
-  .agent-companion { display: none; }
-}
 
 /* Dosya paneli (components/FilePanel.tsx): aktif sekmenin klasörü, sağda.
    Açıkken ajan karakteri yer açmak için gizlenir. */

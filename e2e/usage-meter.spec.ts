@@ -40,7 +40,7 @@ test('the status bar shows the active Codex tab limits from the local session fi
   const userData = join(folder, 'user-data')
   mkdirSync(userData)
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
-    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false, agentCompanion: false, usageCard: false,
+    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false, usageCard: false,
     defaultAgentPermissionMode: 'full', defaultProfileId: 'fake-codex', profiles: [{ id: 'fake-codex', name: 'Fake Codex', command, args: [], fullPermissions: false }]
   }))
   app = await electron.launch({ args: ['.', '--no-sandbox'], env: { ...process.env, USERPROFILE: home, HOME: home, TERMFLOW_E2E: '1', TERMFLOW_E2E_USER_DATA: userData } })

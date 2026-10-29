@@ -3,7 +3,7 @@ import { Minus, Plus } from 'lucide-react'
 import { DEFAULT_THEME_ID, getTheme, RETRO_THEMES, THEMES } from '../themes/themes'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToastStore } from '../store/toastStore'
-import type { AgentAnimationStyle, AgentCharacter, AgentWeather, BackdropMaterial, CursorEffect, MotionLevel, TerminalEffect, ThemeColors } from '../../../shared/types'
+import type { BackdropMaterial, CursorEffect, MotionLevel, TerminalEffect, ThemeColors } from '../../../shared/types'
 import { ColorPicker, Field, NumberInput, Select, TextInput, Toggle } from './Settings'
 import { AsciiBackgroundSettings } from './AsciiBackgroundSettings'
 import { parseThemeFile } from '../../../shared/themeImport'
@@ -330,47 +330,6 @@ export function AppearanceSettings(): React.JSX.Element {
             onChange={(v) => void update({ terminalEffect: v as TerminalEffect })}
           />
         </Field>
-        <Field label="Agent Animation" hint="Character animation to the right of agent terminals that follows what the agent is doing">
-          <Toggle
-            checked={settings.agentCompanion}
-            onChange={(v) => void update({ agentCompanion: v })}
-            label="Agent animation"
-          />
-        </Field>
-        <Field label="Animation Style" hint="The same character drawn with ASCII glyphs or as pixel art">
-          <Select
-            value={settings.agentAnimationStyle}
-            options={[
-              { value: 'face', label: 'ASCII' },
-              { value: 'scenes', label: 'Pixel' }
-            ]}
-            onChange={(v) => void update({ agentAnimationStyle: v as AgentAnimationStyle })}
-          />
-        </Field>
-        <Field label="Character" hint="Auto picks one per agent: Claude Code Ember, Codex Miso, OpenCode Piko">
-          <Select
-            value={settings.agentCharacter}
-            options={[
-              { value: 'auto', label: 'Auto (per agent)' },
-              { value: 'ember', label: 'Ember' },
-              { value: 'miso', label: 'Miso' },
-              { value: 'piko', label: 'Piko' }
-            ]}
-            onChange={(v) => void update({ agentCharacter: v as AgentCharacter })}
-          />
-        </Field>
-        <Field label="Weather" hint="A sky around the character that it reacts to: an umbrella in the rain, a scarf in the snow">
-          <Select
-            value={settings.agentWeather}
-            options={[
-              { value: 'off', label: 'Off' },
-              { value: 'cycle', label: 'Changing' },
-              { value: 'live', label: 'Live (your city)' }
-            ]}
-            onChange={(v) => void update({ agentWeather: v as AgentWeather })}
-          />
-        </Field>
-        {settings.agentWeather === 'live' && <WeatherCity />}
         <Field label="Celebrate" hint="Confetti when a test or build command passes (needs shell integration)">
           <Toggle
             checked={settings.celebrate}
@@ -470,41 +429,3 @@ export function AppearanceSettings(): React.JSX.Element {
   )
 }
 
-/**
- * City for live weather. Find resolves it once through Open-Meteo; only the
- * city name and then rounded coordinates are sent, nothing else.
- */
-function WeatherCity(): React.JSX.Element {
-  const place = useSettingsStore((s) => s.settings.weatherPlace)
-  const update = useSettingsStore((s) => s.update)
-  const [city, setCity] = useState(place?.name.split(',')[0] ?? '')
-  const [busy, setBusy] = useState(false)
-  const find = async (): Promise<void> => {
-    if (!city.trim()) return
-    setBusy(true)
-    try {
-      const found = await window.termflow.weather.geocode(city)
-      if (!found) {
-        useToastStore.getState().show('City not found, or the weather service is unreachable.', 'error')
-        return
-      }
-      await update({ weatherPlace: found })
-      useToastStore.getState().show(`Live weather for ${found.name}.`, 'success')
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <Field label="City" hint={place ? `Using ${place.name}. Only the city and rounded coordinates go to Open-Meteo.` : 'Type a city and press Find. Only the city and rounded coordinates go to Open-Meteo.'}>
-      <TextInput
-        value={city}
-        maxLength={80}
-        placeholder="e.g. Istanbul"
-        aria-label="City for live weather"
-        onChange={(e) => setCity(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') void find() }}
-      />
-      <button className="settings-btn" disabled={busy || !city.trim()} onClick={() => void find()}>{busy ? 'Finding...' : 'Find'}</button>
-    </Field>
-  )
-}

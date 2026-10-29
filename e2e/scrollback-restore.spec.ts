@@ -19,7 +19,7 @@ async function launch(): Promise<void> {
 test.beforeEach(() => {
   userData = mkdtempSync(join(tmpdir(), 'termflow-e2e-scrollback-'))
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
-    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: true, agentCompanion: false
+    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: true
   }))
 })
 

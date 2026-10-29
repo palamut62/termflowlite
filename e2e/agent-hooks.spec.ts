@@ -82,7 +82,7 @@ async function launch(agentHooks: boolean, extra: Record<string, unknown> = {}):
   require('fs').mkdirSync(userData)
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
     gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false,
-    agentCompanion: false, agentHooks, defaultAgentPermissionMode: 'workspace', defaultProfileId: 'fake-claude',
+    agentHooks, defaultAgentPermissionMode: 'workspace', defaultProfileId: 'fake-claude',
     profiles: [{ id: 'fake-claude', name: 'Fake Claude', command, args: [], fullPermissions: false }],
     ...extra
   }))

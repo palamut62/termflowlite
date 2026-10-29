@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.29.0 - 2026-10-29
+
+- The agent character animation (Ember, Miso and Piko) is gone. The pane beside agent terminals, its Appearance settings (animation, style, character, weather) and the live weather lookup were all removed, so nothing in TermFlow reaches out to a weather service any more.
+
 ## 1.28.0 - 2026-10-28
 
 - Screen sharing: the phone shows your whole computer and controls it, the Windows sign-in screen and UAC prompts included. Touch moves the mouse, the phone keyboard types, and the bar has Ctrl+Alt+Del, watch only and full screen. Turn the phone sideways to fill its screen.

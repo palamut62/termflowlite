@@ -20,7 +20,6 @@ import { ScrollbackStore } from './storage/ScrollbackStore'
 import { registerGitIpc } from './ipc/git'
 import { registerWorktreeIpc } from './ipc/worktree'
 import { registerGithubIpc } from './ipc/github'
-import { registerWeatherIpc } from './ipc/weather'
 import { registerFilesIpc } from './ipc/files'
 import { registerTasksIpc } from './ipc/tasks'
 import { registerProjectIpc } from './ipc/project'
@@ -512,7 +511,6 @@ app.whenReady().then(() => {
   registerGitIpc()
   registerWorktreeIpc()
   registerGithubIpc()
-  registerWeatherIpc()
   registerFilesIpc()
   registerTasksIpc()
   registerProjectIpc()

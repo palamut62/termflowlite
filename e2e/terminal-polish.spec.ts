@@ -32,7 +32,7 @@ async function launch(settings: Record<string, unknown> = {}): Promise<void> {
     chmodSync(command, 0o755)
   }
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
-    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false, agentCompanion: false,
+    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false,
     profiles: [{ id: 'echo-claude', name: 'Echo Claude', command, args: [], fullPermissions: false }],
     ...settings
   }))

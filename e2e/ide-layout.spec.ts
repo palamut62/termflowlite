@@ -16,7 +16,7 @@ let userData = ''
 test.beforeEach(async () => {
   userData = mkdtempSync(join(tmpdir(), 'termflow-e2e-ide-'))
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
-    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false, agentCompanion: false
+    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false
   }))
   app = await electron.launch({ args: ['.', '--no-sandbox'], env: { ...process.env, TERMFLOW_E2E: '1', TERMFLOW_E2E_USER_DATA: userData } })
   win = await app.firstWindow()

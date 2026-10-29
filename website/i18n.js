@@ -1,5 +1,5 @@
 // TermFlow Lite site: English and Turkish. English lives in the HTML; this file
-// holds the Turkish text and the strings main.js and companion.js build at runtime.
+// holds the Turkish text and the strings main.js builds at runtime.
 // Order: ?lang= in the URL, then the visitor's earlier pick, then the browser language.
 (() => {
   'use strict'
@@ -100,34 +100,6 @@
     'f9.li3': "Türkçe ve İngilizce; seçtiğin OpenRouter modeli ve kendi anahtarınla çalışır, on saniyelik konuşmanın maliyeti yaklaşık yüzde bir sent",
     'f9.li4': "Sen açana kadar kapalıdır; Space'i basılı tutmadıkça hiçbir şey kaydedilmez, Esc iptal eder",
     'f9.alt': 'Dikte edilen bir komut PowerShell isteminde beklerken Dinliyor göstergesi ikinci bir kaydı gösteriyor',
-
-    'f3.title': 'Ajanının ne yaptığını gör',
-    'f3.text': 'Ember, Miso ya da Piko her ajan terminalinin yanında oturur ve gerçek oturumu canlandırır: ajan düzenleme yaparken yazar, düşünür, onayını bekler, iş bitince sevinir.',
-    'f3.li1': 'İfadesi oturumun kendisini izler, çıktıdan tahmin yürütmez; altyazı da yapılan işi söyler, örneğin "upload.ts düzenleniyor"',
-    'f3.li2': 'Uzun bir seriden sonra yorgun bir yüzle ve ara sıra esneyerek devam eder. Boş bırakırsan uyuyakalır',
-    'f3.li3': 'ASCII ya da piksel sanatıyla çizilir; her ajana ayrı bir karakter ya da seçtiğin tek bir karakter',
-    'f3.li4': 'Üzerine gelince gözleriyle imlecini takip eder, yaklaşınca gülümser. Burada dene',
-    'f3.li5': 'Havanın içinde yaşar: değişen bir gökyüzü ya da şehrinin canlı hava durumu. Yağmurda şemsiye, karda atkı, sıcakta ter',
-    'cd.canvas': 'Ajan karakteri',
-    'cd.state': 'Ajan durumu',
-    'cd.working': 'Çalışıyor',
-    'cd.thinking': 'Düşünüyor',
-    'cd.waiting': 'Seni bekliyor',
-    'cd.done': 'Bitti',
-    'cd.tired': 'Yorgun',
-    'cd.error': 'Hata',
-    'cd.angry': 'Huysuz',
-    'cd.sleeping': 'Uykuda',
-    'cd.kind': 'Karakter',
-    'cd.weather': 'Hava',
-    'cd.auto': 'Otomatik gök',
-    'cd.sunny': 'Güneşli',
-    'cd.hot': 'Sıcak',
-    'cd.windy': 'Rüzgârlı',
-    'cd.rain': 'Yağmur',
-    'cd.snow': 'Kar',
-    'cd.style': 'Stil',
-    'cd.pixel': 'Piksel',
 
     'f4.title': 'Daha az yaz, daha çok bul',
     'f4.text': 'Daha önce çalıştırdığın komutlar sen yazarken gri bir öneri olarak belirir. Almak için <kbd>→</kbd> tuşuna bas.',

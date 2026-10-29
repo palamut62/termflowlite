@@ -1,5 +1,9 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.29.0 - 2026-10-29
+
+- Everything in TermFlow Lite 1.29.0: the agent character animation and its settings were removed.
+
 ## 1.28.0 - 2026-10-28
 
 - Everything in TermFlow Lite 1.28.0: the phone's new Screen tab shows and controls the whole computer through a VNC server running on it, sign-in screen and UAC included.

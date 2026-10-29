@@ -14,7 +14,6 @@ import { resolveTheme } from '../themes/themes'
 import { backdropActive, isLightColor, terminalTheme } from '../backdrop'
 import { CursorFx } from './cursorFx'
 import { recordInput, recordOutput } from '../fun/outputMeter'
-import { forgetActivity, noteAgentOutput } from '../fun/agentActivity'
 import { burstConfetti, shouldCelebrate } from '../fun/confetti'
 import { useStatsStore } from '../store/statsStore'
 import { playCue } from '../fun/sounds'
@@ -34,7 +33,6 @@ import { TerminalSearch } from './TerminalSearch'
 import { AsciiBackdrop } from './AsciiBackdrop'
 import { AgentWorkPanel } from '../components/AgentWorkPanel'
 import { UsageStrip } from '../usage/UsageStrip'
-import { AgentCompanion } from '../components/AgentCompanion'
 import { MediaCards } from '../components/MediaCards'
 import { reportMedia } from '../store/mediaStore'
 import { redactApiKeys } from '../../../shared/secretRedaction'
@@ -370,8 +368,6 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
         useTerminalStore.getState().setTabActivity(tabId, activity)
       }
       if (tabAgent) {
-        // What the agent is doing right now, for the agent animation.
-        noteAgentOutput(tabId, data)
         for (const event of parseAgentOutput(tabAgent, data)) {
           if (hooked && HOOK_OWNED_KINDS.has(event.kind)) continue
           useAgentEventStore.getState().append(tabId, tabAgent, permissionMode, event)
@@ -715,7 +711,6 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
       exitHandlers.delete(tabId)
       searchAddons.delete(tabId)
       pasteHandlers.delete(tabId)
-      forgetActivity(tabId)
       // Unmount artık yalnızca tab kapanınca olur; tab kapanışı zaten pty.kill
       // çağırdığı için ayrıca bir mod değişikliğine gerek yok. createdPtys'ten
       // silmiyoruz: tab id'leri benzersiz, ve StrictMode'un unmount/remount
@@ -1027,7 +1022,6 @@ ${block.output.slice(-8000)}
           <div ref={hostRef} className="terminal-host" />
           <MediaCards tabId={tabId} />
         </div>
-        <AgentCompanion tabId={tabId} visible={visible} />
       </div>
       <UsageStrip tabId={tabId} />
       <AgentWorkPanel tabId={tabId} onChangeCwd={handleChangeCwd} />

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { ClaudeLogin } from '../shared/claudeAccounts'
-import { IPC, type AgentSessionsQuery, type AgentTask, type AppLaunchRequest, type GhOutcome, type GitHubPullRequest, type GitHubRepo, type GitHubStatus, type GitHubTask, type GitHubTaskFilter, type GitHubTaskKind, type GitRepoInfo, type GitStatus, type ScmAction, type ScmChecks, type ScmDiff, type ScmState, type ProjectInfo, type ProjectTask, type ResolvedPath,  type TitleBarOverlayPayload, type WidgetAction, type WidgetState, type CommandNotification, type CaptureRect, type MediaInfo, type WorktreeCreateRequest, type WorktreeEntry, type WorktreeOutcome, type WorktreeRemoveOutcome, type WorktreeRemoveRequest, type WorktreeSetupOutcome, type WorktreeSetupRequest, type WeatherPlace, type WeatherReading, type DirListing, type ResourceSnapshot, type FileSearchQuery, type FileSearchResult, type ProjectCreateResult, type AttentionBadge } from '../shared/ipc'
+import { IPC, type AgentSessionsQuery, type AgentTask, type AppLaunchRequest, type GhOutcome, type GitHubPullRequest, type GitHubRepo, type GitHubStatus, type GitHubTask, type GitHubTaskFilter, type GitHubTaskKind, type GitRepoInfo, type GitStatus, type ScmAction, type ScmChecks, type ScmDiff, type ScmState, type ProjectInfo, type ProjectTask, type ResolvedPath,  type TitleBarOverlayPayload, type WidgetAction, type WidgetState, type CommandNotification, type CaptureRect, type MediaInfo, type WorktreeCreateRequest, type WorktreeEntry, type WorktreeOutcome, type WorktreeRemoveOutcome, type WorktreeRemoveRequest, type WorktreeSetupOutcome, type WorktreeSetupRequest, type DirListing, type ResourceSnapshot, type FileSearchQuery, type FileSearchResult, type ProjectCreateResult, type AttentionBadge } from '../shared/ipc'
 import type { RemoteCommandReply, RemoteCommandRequest, RemoteDeviceInfo, RemotePairing, RemoteStatus, RemoteTabsState } from '../shared/remote'
 import type { AgentHookEvent } from '../shared/agentHooks'
 import type { AgentUsage } from '../shared/usage'
@@ -206,11 +206,6 @@ const api = {
     detectClaudeLogins: (): Promise<ClaudeLogin[]> => ipcRenderer.invoke(IPC.CLAUDE_ACCOUNT_DETECT),
     suggestClaudeDir: (name: string): Promise<string> => ipcRenderer.invoke(IPC.CLAUDE_ACCOUNT_SUGGEST, name),
     createProject: (parent: string, name: string): Promise<ProjectCreateResult> => ipcRenderer.invoke(IPC.PROJECT_CREATE, parent, name)
-  },
-  /** Live weather for the agent character (Open-Meteo, from the main process). */
-  weather: {
-    geocode: (city: string): Promise<WeatherPlace | null> => ipcRenderer.invoke(IPC.WEATHER_GEOCODE, city),
-    current: (latitude: number, longitude: number): Promise<WeatherReading | null> => ipcRenderer.invoke(IPC.WEATHER_CURRENT, latitude, longitude)
   },
   tasks: {
     discover: (cwd: string): Promise<ProjectTask[]> => ipcRenderer.invoke(IPC.TASKS_DISCOVER, cwd)

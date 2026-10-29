@@ -29,7 +29,7 @@ test.beforeEach(async () => {
   const userData = join(folder, 'user-data')
   mkdirSync(userData)
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
-    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false, agentCompanion: false,
+    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false,
     uiMode: 'ide', uiModeChosen: true, startupDirectory: 'custom', customStartupDirectory: repo,
     ide: { projects: [repo], sidebarWidth: 260, rightWidth: 300, rightOpen: true, rightTab: 'explorer' }
   }))

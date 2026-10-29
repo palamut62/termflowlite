@@ -1,6 +1,6 @@
 # TermFlow Lite - Durum
 
-guncel: 2026-10-28
+guncel: 2026-10-29
 
 > Bu dosya projeye giren her yapay zeka aracinin ilk okudugu yerdir. Kisa tutulur (en fazla ~80 satir).
 > Kalici bilgi (mimari, kararlar, ayrintili gecmis) `PROJE-REHBER.md`'de (varsa) / README'de.
@@ -12,7 +12,7 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 
 ## Calistir / test et
 - `npm run dev` (gelistirme), `npm run verify` (vitest + tsc + build)
-- `npm test` (birim), `npm run test:e2e` (Playwright, ~8 dk), `npm run build:site` (site karakter demosu)
+- `npm test` (birim), `npm run test:e2e` (Playwright, ~8 dk)
 - Paket: `npm run dist:win` / `dist:linux`; yayin: `npm run release:tag` (CI yayinlar, bkz. `docs/releasing.md`)
 
 ## Asama
@@ -39,7 +39,10 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
 - Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Son oturum (2026-10-28, son arac: Claude Code, dal feature/phone-push)
+## Son oturum (2026-10-29, son arac: Claude Code, dal feature/phone-push)
+- **Ajan karakteri kaldirildi:** AgentCompanion/characterEngine/characterState, `fun/agentActivity.ts`, `fun/weather.ts`, `main/weather*`, `ipc/weather.ts`, hava IPC + preload, Appearance ayarlari (animasyon/stil/karakter/hava) ve `settings` alanlari, site bolumu (`website/companion.js`, `scripts/site-companion.ts`, f3/cd metinleri, `build:site`). verify yesil; paketlenip kurulmadi, site deploy edilmedi.
+
+## Onceki oturum (2026-10-28, dal feature/phone-push)
 - **1.28.0 yayinda (2026-10-28):** dal main'e birlestirildi (verify yesil), `v1.28.0` etiketi itildi, Release + verify-release 7/7 yesil (run 40665062742). Site: Remote bolumune ekran paylasimi maddesi (EN/TR), Vercel prod; indirme linkleri main.js'te GitHub API'den geldigi icin elle surum guncellemesi gerekmiyor.
 - **Ekran paylasimi (tam PC telefonda):** telefon istemcisine Screen sekmesi (noVNC), masaustunde Ayarlar > Remote Access > Screen (`remote.screen {enabled,port=5900}`). Yakalama/girdi TermFlow'a yazilmadi: bilgisayarda bir VNC servisi kosar, TermFlow boru (`screenBridge.ts`, `POST /api/screen-ticket` -> tek kullanimlik bilet -> `ws /vnc` -> `127.0.0.1:port`). Kilit ekrani/UAC bu yuzden calisir. Karar + akis `docs/remote-access.md` sonunda. verify yesil (8 yeni test).
 - Ekran paylasimi gercek telefonda calisti (UltraVNC servis, 2026-10-28). Eklendi: telefon cevrilince yeniden olceklenme (noVNC yalniz pencere resize'ini dinliyor, iOS klavye/donme icin onu her zaman tetiklemiyor -> visualViewport + orientationchange), yatayda otomatik tam ekran, yapiskan klavye (PC'ye dokununca kapanmaz). VNC parolasi saklanmaz, telefonda sorulur.
@@ -48,15 +51,11 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - verify yesil; Lite + Agent IDE 1.27.1 derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle denenmedi; surum artmadi, yayinlanmadi.
 - Not: SSH sekmeleri de artik yerel home projesi altinda gorunur (onceden hic gorunmuyordu); istenmezse ayrilabilir.
 
-## Onceki oturum (2026-10-27, dal feature/phone-push)
+## Daha onceki oturum (2026-10-27, dal feature/phone-push)
 - ntfy "needs you" bildirimine Approve (Enter) / Reject (Esc) butonlari: tek kullanimlik token, `POST /api/push-action` (`phonePush.ts PushActionTokens`, `RemoteController.pushActions`). Spec `docs/orca-parity/remote-attention.md` sonu.
 - Telefon istemcisi: iPhone uygulamasi koprusu `src/remote/src/native.ts` (pano, ekran acik, haptik, basili tut-konus, Face ID, bilgisayarlar), Quick prompts, Copy text, Project > Review changes (`scm:diff` izin listesinde). `docs/remote-access.md` sonu. iOS tarafi `../termflow-lite-ios` (commit b764c6b).
 - iPhone widget/Live Activity/paylasim icin `GET /api/status` + `POST /api/type` (Enter'siz, kontrol karakterleri temiz), sayfadan `status` mesaji; `agentForProfile` artik Pick<> aliyor. iOS ca2dfdd.
 - verify yesil. Yayinlanmadi, surum artmadi. Gercek iPhone + ntfy ile denenmedi.
-
-## Daha onceki oturum (2026-10-26 aksam, dal feature/phone-push)
-- iPhone uygulamasi `../termflow-lite-ios` (xtool, WKWebView kabugu) + telefon bildirimi (ntfy, `termflow://tab/<id>`). Telefonda calistigi dogrulandi (2026-10-27).
-- Teshis notu: Claude Code fare raporlama ACMIYOR (`?1000/1002/1006` yok), imleci gizliyor (`?25l`) - sorun fare modu degil caret bulmaydi. Kalan sinir: cok satirli prompt kutusunda caret secimin fiziksel satirinda degilse `planSelectionEdit` hala reddediyor (ok sayisi kutu cercevesi yuzunden yanlis cikardi).
 
 
 ## Yarim kalan / siradaki adim

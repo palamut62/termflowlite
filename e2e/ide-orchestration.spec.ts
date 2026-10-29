@@ -65,7 +65,7 @@ test.beforeEach(async () => {
   execFileSync('git', ['add', '.'], { cwd: repo })
   execFileSync('git', ['-c', 'user.email=e2e@t', '-c', 'user.name=e2e', 'commit', '-qm', 'init'], { cwd: repo })
   writeFileSync(join(folder, 'user-data', 'settings.json'), JSON.stringify({
-    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false, agentCompanion: false,
+    gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false,
     uiMode: 'ide', uiModeChosen: true,
     orchestration: { enabled: true, maxConcurrent: 2, timeoutMinutes: 10, claudeThreshold: 70, targets: { opencode: { enabled: true, model: 'opencode/fake-free' } } }
   }))

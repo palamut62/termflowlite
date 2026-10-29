@@ -55,7 +55,7 @@ saati, %80'i gecince uyari. Durum cubugunda ajan sekmesi aktifken gorunur.
   sarmalanir: `i=$(cat); (printf '%s' "$i" | curl ... &); printf '%s' "$i" | <kullanici komutu>`; gorunum degismez
   (bu PC'de `python ~/.claude/statusline.py` ile canli denendi). Komut basina ayar dosyasi `claude-settings-usage-<hash>.json`.
 - Claude limitleri ISTEGE BAGLI (`claudeUsage`, varsayilan kapali): kullanicinin status line'i yoksa Claude alt bilgi ipuclarini
-  ('esc to interrupt') gizler ve karakter animasyonu bu ipucunu okuyor. Codex varsayilan acik (`usageDisplay`).
+  ('esc to interrupt') gizler. Codex varsayilan acik (`usageDisplay`).
 - Sunucu Claude JSON'undan yalniz `rate_limits`'i saklar (`userData/agent-hooks/usage/claude.json`); model, yol, maliyet atilir.
 - Durum cubugu zemini renkli oldugu icin %80+/%95+ uyarisi metin rengi degil zemin rengi (okunurluk).
 - Telefona usage ozeti eklenmedi (remote-attention'a birakildi).

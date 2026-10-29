@@ -468,16 +468,6 @@ export interface AppSettings {
   shiftEnterNewline: boolean
   /** xterm minimumContrastRatio: 1 = kapali, 4.5 = WCAG AA. */
   minimumContrastRatio: number
-  /** Ajan sekmelerinin sağında, ajan durumuna göre değişen karakter animasyonu. */
-  agentCompanion: boolean
-  /** Animasyon stili: gözleriyle tepki veren ASCII yüz ya da piksel-art sahneler. */
-  agentAnimationStyle: AgentAnimationStyle
-  /** Karakter: 'auto' ajana göre seçer (Claude -> Ember, Codex -> Miso, OpenCode -> Piko). */
-  agentCharacter: AgentCharacter
-  /** Weather around the character: off, a changing demo sky, or live weather for `weatherPlace`. */
-  agentWeather: AgentWeather
-  /** City for live weather, resolved once to rounded coordinates. */
-  weatherPlace: { name: string; latitude: number; longitude: number } | null
   /** Per-profile picture drawn as ASCII behind the terminal text (key = profile id). */
   asciiBackgrounds: Record<string, AsciiBackground>
   /** Agent Memory: 30-day per-project memory built from local agent sessions (opt-in). */
@@ -501,9 +491,6 @@ export type BackdropMaterial = 'none' | 'mica' | 'acrylic' | 'tabbed'
 export type CursorEffect = 'none' | 'trail' | 'blaze'
 export type TerminalEffect = 'none' | 'scanlines' | 'crt'
 export type SoundTheme = 'off' | 'mechanical' | 'soft'
-export type AgentAnimationStyle = 'face' | 'scenes'
-export type AgentCharacter = 'auto' | 'ember' | 'miso' | 'piko'
-export type AgentWeather = 'off' | 'cycle' | 'live'
 
 export type VoiceLanguage = 'auto' | 'tr' | 'en'
 
@@ -907,11 +894,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     soundFile: ''
   },
   worktreeSetup: {},
-  agentCompanion: true,
-  agentAnimationStyle: 'face',
-  agentCharacter: 'auto',
-  agentWeather: 'cycle',
-  weatherPlace: null,
   asciiBackgrounds: {},
   memory: { enabled: false, updateEvery: 'hourly', model: 'deepseek/deepseek-v4-flash', excludedProjects: [] },
   remote: { enabled: false, port: 47321, push: { enabled: false, server: 'https://ntfy.sh', topic: '' }, screen: { enabled: false, port: 5900 } },

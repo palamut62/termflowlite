@@ -235,58 +235,6 @@
         <figure class="shot"><img src="/assets/agent-ide.webp" data-i18n-attr="alt:ide.alt" alt="TermFlow Agent IDE with the projects sidebar, a diff with a review comment and the Source Control panel" width="1375" height="875" loading="lazy" /></figure>
       </article>
 
-      <article class="feature feature-companion" id="companion">
-        <div class="feature-copy">
-          <h2 data-i18n="f3.title">See what your agent is up to</h2>
-          <p data-i18n="f3.text">Ember, Miso or Piko sits beside each agent terminal and acts out the real session: typing while it edits, thinking, waiting for your approval, cheering when it is done.</p>
-          <ul>
-            <li data-i18n="f3.li1">Its expression follows the session itself, never a guess from the output, and the caption names the work, like "Editing upload.ts"</li>
-            <li data-i18n="f3.li2">After a long streak it keeps going with a tired face and the odd yawn. Leave it idle and it falls asleep</li>
-            <li data-i18n="f3.li3">Drawn as ASCII or as pixel art, with a character per agent or the one you pick</li>
-            <li data-i18n="f3.li4">Point at it and it follows your cursor with its eyes, and smiles when you get close. Try it here</li>
-            <li data-i18n="f3.li5">It lives in the weather, a changing sky or the live weather of your city: an umbrella in the rain, a scarf in the snow, sweat in the heat</li>
-          </ul>
-        </div>
-        <figure class="shot companion-demo" data-companion-demo>
-          <div class="cd-window">
-            <div class="cd-terminal" data-demo-terminal aria-hidden="true"></div>
-            <canvas class="cd-canvas" role="img" aria-label="Agent character" data-i18n-attr="aria-label:cd.canvas"></canvas>
-          </div>
-          <figcaption class="cd-controls">
-            <span class="sr-only" aria-live="polite" data-demo-status></span>
-            <div class="seg seg-dark" role="group" aria-label="Agent state" data-i18n-attr="aria-label:cd.state">
-              <button type="button" data-demo-state="working" aria-pressed="true" data-i18n="cd.working">Working</button>
-              <button type="button" data-demo-state="thinking" aria-pressed="false" data-i18n="cd.thinking">Thinking</button>
-              <button type="button" data-demo-state="waiting" aria-pressed="false" data-i18n="cd.waiting">Needs you</button>
-              <button type="button" data-demo-state="done" aria-pressed="false" data-i18n="cd.done">Done</button>
-              <button type="button" data-demo-state="tired" aria-pressed="false" data-i18n="cd.tired">Tired</button>
-              <button type="button" data-demo-state="error" aria-pressed="false" data-i18n="cd.error">Error</button>
-              <button type="button" data-demo-state="angry" aria-pressed="false" data-i18n="cd.angry">Grumpy</button>
-              <button type="button" data-demo-state="sleeping" aria-pressed="false" data-i18n="cd.sleeping">Asleep</button>
-            </div>
-            <div class="cd-row">
-              <div class="seg seg-dark" role="group" aria-label="Character" data-i18n-attr="aria-label:cd.kind">
-                <button type="button" data-demo-kind="ember" aria-pressed="true">Ember</button>
-                <button type="button" data-demo-kind="miso" aria-pressed="false">Miso</button>
-                <button type="button" data-demo-kind="piko" aria-pressed="false">Piko</button>
-              </div>
-              <div class="seg seg-dark" role="group" aria-label="Weather" data-i18n-attr="aria-label:cd.weather">
-                <button type="button" data-demo-weather="auto" aria-pressed="true" data-i18n="cd.auto">Auto sky</button>
-                <button type="button" data-demo-weather="sunny" aria-pressed="false" data-i18n="cd.sunny">Sunny</button>
-                <button type="button" data-demo-weather="hot" aria-pressed="false" data-i18n="cd.hot">Hot</button>
-                <button type="button" data-demo-weather="windy" aria-pressed="false" data-i18n="cd.windy">Windy</button>
-                <button type="button" data-demo-weather="rain" aria-pressed="false" data-i18n="cd.rain">Rain</button>
-                <button type="button" data-demo-weather="snow" aria-pressed="false" data-i18n="cd.snow">Snow</button>
-              </div>
-              <div class="seg seg-dark" role="group" aria-label="Style" data-i18n-attr="aria-label:cd.style">
-                <button type="button" data-demo-style="ascii" aria-pressed="true">ASCII</button>
-                <button type="button" data-demo-style="pixel" aria-pressed="false" data-i18n="cd.pixel">Pixel</button>
-              </div>
-            </div>
-          </figcaption>
-        </figure>
-      </article>
-
       <article class="feature">
         <div class="feature-copy">
           <h2 data-i18n="f4.title">Type less, find more</h2>
@@ -419,6 +367,5 @@
 
   <script src="/i18n.js" defer></script>
   <script src="/main.js" defer></script>
-  <script src="/companion.js" defer></script>
 </body>
 </html>

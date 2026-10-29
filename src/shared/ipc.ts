@@ -84,8 +84,6 @@ export const IPC = {
   GITHUB_PR_CHECKOUT: 'github:pr-checkout', // (worktreePath, number, repo?) -> GhOutcome
   GITHUB_CLONE: 'github:clone', // (nameWithOwner, targetPath) -> GhOutcome
   GITHUB_TASKS: 'github:tasks', // (kind, filter, search, repo, cwd?) -> GitHubTask[]
-  WEATHER_GEOCODE: 'weather:geocode', // (city) -> WeatherPlace | null
-  WEATHER_CURRENT: 'weather:current', // (latitude, longitude) -> WeatherReading | null
   FILES_LIST: 'files:list', // (dir, showHidden) -> DirListing | null — one level, read-only
   FILES_SEARCH: 'files:search', // (dir, FileSearchQuery) -> FileSearchResult — git grep
   TASKS_DISCOVER: 'tasks:discover',
@@ -348,21 +346,6 @@ export interface FileSearchQuery { text: string; caseSensitive?: boolean; word?:
 export interface FileSearchFile { path: string; absolute: string; matches: { line: number; text: string }[] }
 export type ProjectCreateResult = { ok: true; path: string } | { ok: false; error: string }
 export interface FileSearchResult { files: FileSearchFile[]; truncated: boolean; error?: string }
-
-/** A city resolved for live weather (coordinates rounded to two decimals). */
-export interface WeatherPlace {
-  name: string
-  latitude: number
-  longitude: number
-}
-
-/** Current conditions from Open-Meteo: WMO weather code, °C, km/h. */
-export interface WeatherReading {
-  code: number
-  temperature: number
-  windSpeed: number
-  isDay: boolean
-}
 
 export interface GitHubStatus {
   installed: boolean

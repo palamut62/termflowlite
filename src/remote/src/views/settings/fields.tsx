@@ -83,10 +83,6 @@ export const APPEARANCE_FIELDS: FieldSpec[] = [
   { kind: 'number', key: 'terminalPadding', label: 'Terminal padding', min: 0, max: 48 },
   { kind: 'select', key: 'gpuAcceleration', label: 'GPU acceleration', options: opts([['auto', 'Auto'], ['on', 'On'], ['off', 'Off']]) },
   { kind: 'toggle', key: 'imageSupport', label: 'Inline images' },
-  { kind: 'toggle', key: 'agentCompanion', label: 'Agent character' },
-  { kind: 'select', key: 'agentAnimationStyle', label: 'Character style', options: opts([['face', 'ASCII face'], ['scenes', 'Pixel scenes']]) },
-  { kind: 'select', key: 'agentCharacter', label: 'Character', options: opts([['auto', 'Auto'], ['ember', 'Ember'], ['miso', 'Miso'], ['piko', 'Piko']]) },
-  { kind: 'select', key: 'agentWeather', label: 'Weather', options: opts([['off', 'Off'], ['cycle', 'Changing sky'], ['live', 'Live (city set on desktop)']]) },
   { kind: 'toggle', key: 'celebrate', label: 'Celebrate passing builds' },
   { kind: 'select', key: 'soundTheme', label: 'Sounds', options: opts([['off', 'Off'], ['mechanical', 'Mechanical'], ['soft', 'Soft']]) }
 ]
