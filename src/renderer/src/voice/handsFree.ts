@@ -23,6 +23,17 @@ export function silenceDetector(silenceMs: number, start: number): (level: numbe
   }
 }
 
+/** Below -80 dB RMS even a quiet room is louder: the microphone is muted or its level is at zero. */
+export const MUTED_LEVEL = 1e-4
+
+/** What to say when no speech came, telling a muted microphone apart from not speaking. */
+export function nothingHeardMessage(loudest: number, handsFree: boolean): string {
+  if (loudest < MUTED_LEVEL) {
+    return 'The microphone gives no sound. Check the mute key and the input level in Windows Settings > System > Sound > Input.'
+  }
+  return handsFree ? 'Nothing was heard.' : 'Nothing was heard. Hold Space while you speak.'
+}
+
 // A whole word at the very end (\b is ASCII-only in JS, so the boundary is spelled out).
 const SEND_WORD = /(^|[^\p{L}\p{N}])(gönder|gonder|send|enter)[\s.!]*$/iu
 

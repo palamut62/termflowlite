@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NO_SPEECH_MS, silenceDetector, splitSendWord } from './handsFree'
+import { NO_SPEECH_MS, nothingHeardMessage, silenceDetector, splitSendWord } from './handsFree'
 
 describe('silenceDetector', () => {
   it('stops once after speech and then silence', () => {
@@ -28,6 +28,16 @@ describe('silenceDetector', () => {
     const feed = silenceDetector(0, 0)
     feed(0.1, 0)
     expect(feed(0.001, 60_000)).toBeNull()
+  })
+})
+
+describe('nothingHeardMessage', () => {
+  it('tells a muted microphone apart from not speaking', () => {
+    // -97 dB: what a muted Realtek microphone delivered.
+    expect(nothingHeardMessage(1.4e-5, false)).toContain('microphone gives no sound')
+    expect(nothingHeardMessage(1.4e-5, true)).toContain('Sound > Input')
+    expect(nothingHeardMessage(0.003, false)).toBe('Nothing was heard. Hold Space while you speak.')
+    expect(nothingHeardMessage(0.003, true)).toBe('Nothing was heard.')
   })
 })
 

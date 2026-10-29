@@ -4,7 +4,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useTerminalStore } from '../store/terminalStore'
 import { useToastStore } from '../store/toastStore'
 import { useVoiceStore } from '../store/voiceStore'
-import { silenceDetector, splitSendWord } from './handsFree'
+import { MUTED_LEVEL, nothingHeardMessage, silenceDetector, splitSendWord } from './handsFree'
 import { HoldToTalk } from './holdToTalk'
 import { MAX_RECORDING_MS, microphoneError, startRecording, type Recording } from './recorder'
 
@@ -42,15 +42,17 @@ async function begin(tabId: string, hold: HoldToTalk, term: Terminal, locked: bo
   useVoiceStore.getState().set({ phase: 'starting', tabId, startedAt: Date.now(), level: 0, locked })
   // Hands-free: nobody releases a key, so silence ends the recording.
   const silent = locked ? silenceDetector(useSettingsStore.getState().settings.voice.silenceMs, Date.now()) : null
+  let loudest = 0
   const onLevel = (level: number): void => {
     useVoiceStore.getState().set({ level })
+    loudest = Math.max(loudest, level)
     const verdict = silent?.(level, Date.now())
     if (!verdict || session !== current) return
     hold.stopFromOutside()
     if (verdict === 'stop') void stop(term)
     else {
       cancel()
-      toast('Nothing was heard.')
+      toast(nothingHeardMessage(loudest, true), loudest < MUTED_LEVEL ? 'error' : 'info')
     }
   }
   try {
@@ -86,7 +88,8 @@ async function stop(term: Terminal): Promise<void> {
   const result = await current.recording.stop()
   if (!result || result.seconds < MIN_SECONDS || result.peak < MIN_PEAK) {
     useVoiceStore.getState().set({ phase: 'idle', level: 0 })
-    toast('Nothing was heard. Hold Space while you speak.')
+    const loudest = result?.peak ?? 0
+    toast(nothingHeardMessage(loudest, false), loudest < MUTED_LEVEL ? 'error' : 'info')
     return
   }
   useVoiceStore.getState().set({ phase: 'transcribing', level: 0 })
