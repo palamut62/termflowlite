@@ -1,5 +1,9 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.29.1 - 2026-10-29
+
+- Tasks says what to do when the open terminal is not in a repository, instead of showing the raw git error. Automations opens the editor on the automation you picked, whether you pressed Edit or started from a template.
+
 ## 1.29.0 - 2026-10-29
 
 - Everything in TermFlow Lite 1.29.0: the agent character animation and its settings were removed.

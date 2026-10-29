@@ -86,7 +86,10 @@ function persist(commands: SavedCommand[]): void {
 interface SavedCommandState {
   commands: SavedCommand[]
   open: boolean
-  show(): void
+  /** Panel acilirken duzenleyiciye yuklenecek komut; SavedCommands okuyup temizler. */
+  editId: string | null
+  show(editId?: string): void
+  clearEdit(): void
   hide(): void
   toggle(): void
   add(name: string, command: string, profileId: string, schedule?: CommandSchedule | null): boolean
@@ -107,7 +110,9 @@ function sameSchedule(a: CommandSchedule | undefined, b: CommandSchedule | undef
 export const useSavedCommandStore = create<SavedCommandState>()((set, get) => ({
   commands: loadCommands(),
   open: false,
-  show: () => set({ open: true }),
+  editId: null,
+  show: (editId) => set({ open: true, editId: editId ?? null }),
+  clearEdit: () => set({ editId: null }),
   hide: () => set({ open: false }),
   toggle: () => set((state) => ({ open: !state.open })),
   add(name, command, profileId, schedule) {

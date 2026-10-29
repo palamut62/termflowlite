@@ -32,7 +32,7 @@ function addTemplate(template: (typeof TEMPLATES)[number]): void {
   const { tabs, activeTabId } = useTerminalStore.getState()
   const active = tabs.find((t) => t.id === activeTabId)
   if (created) store.configure(created.id, active?.worktree?.path || active?.cwd || active?.launchCwd || '', false)
-  store.show()
+  store.show(created?.id)
 }
 
 /** Automations (PRD F3.2, Orca): kayitli / zamanli komutlar, sablonlar ve calisma gecmisi (savedCommandStore). */
@@ -64,7 +64,7 @@ export function AutomationsPage(): React.JSX.Element {
                 <td>{item.lastRunAt ? relativeTime(item.lastRunAt) : '-'}</td>
                 <td className="ide-table-actions">
                   <button className="settings-btn settings-btn-small" onClick={() => runNow(item)}><Play size={11} /> {item.activeTabId ? 'Running' : 'Run now'}</button>
-                  <button className="settings-btn settings-btn-small" onClick={() => useSavedCommandStore.getState().show()}>Edit</button>
+                  <button className="settings-btn settings-btn-small" onClick={() => useSavedCommandStore.getState().show(item.id)}>Edit</button>
                 </td>
               </tr>
             ))}

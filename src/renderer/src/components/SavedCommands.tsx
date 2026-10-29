@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bookmark, Check, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react'
 import { useSavedCommandStore } from '../store/savedCommandStore'
 import { describeSchedule, nextRunAt, type CommandSchedule } from '../store/commandSchedule'
@@ -11,6 +11,7 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
 export function SavedCommands(): React.JSX.Element {
   const commands = useSavedCommandStore((state) => state.commands)
   const hide = useSavedCommandStore((state) => state.hide)
+  const editId = useSavedCommandStore((state) => state.editId)
   const [query, setQuery] = useState('')
   const [name, setName] = useState('')
   const [command, setCommand] = useState('')
@@ -88,6 +89,13 @@ export function SavedCommands(): React.JSX.Element {
     if (item.schedule?.kind === 'weekly') setScheduleWeekday(item.schedule.weekday)
     if (item.schedule?.kind === 'interval') setScheduleMinutes(item.schedule.minutes)
   }
+
+  // Panel bir komut icin acildiysa (Automations > Edit, sablon eklenince) onu duzenlemeye yukle.
+  useEffect(() => {
+    if (!editId) return
+    edit(editId)
+    useSavedCommandStore.getState().clearEdit()
+  }, [editId, commands])
 
   const run = (value: string, targetProfileId: string, id: string, cwd?: string): void => {
     if (!targetProfileId || !targetNames.has(targetProfileId)) return

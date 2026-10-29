@@ -46,6 +46,7 @@ export function TasksPage(): React.JSX.Element {
   }, [kind, filter, search, repo, cwd, status, reload])
 
   const unavailable = status && (!status.installed || !status.authenticated)
+  const noRepo = !repo.trim() && /not a git repository/i.test(error)
   const targetOf = (task: GitHubTask): string => (kind === 'prs' ? (repo ? `https://github.com/${repo}/pull/${task.number}` : `#${task.number}`) : task.url || `issue-${task.number}`)
 
   return (
@@ -64,7 +65,9 @@ export function TasksPage(): React.JSX.Element {
         <button className="ide-icon-btn" onClick={() => setReload((n) => n + 1)} title="Refresh" aria-label="Refresh tasks"><RefreshCw size={14} /></button>
       </div>
       {unavailable && <div className="ide-note ide-note-error">{status.installed ? 'GitHub CLI is not signed in. Run "gh auth login" in a terminal.' : 'GitHub CLI (gh) is not installed.'}</div>}
-      {error && <div className="ide-note ide-note-error">{error}</div>}
+      {/* No repository to read: a guiding line, not the raw git error. */}
+      {noRepo && <div className="ide-note">Open a terminal in a repository folder, or type an <code>owner/repo</code> above, to see its issues and pull requests.</div>}
+      {error && !noRepo && <div className="ide-note ide-note-error">{error}</div>}
       {!unavailable && rows === null && !error && <div className="ide-note"><LoaderCircle size={14} className="spin" /> Loading {kind === 'prs' ? 'pull requests' : 'issues'}...</div>}
       {rows && rows.length === 0 && !error && <div className="ide-note">Nothing here.</div>}
       {rows && rows.length > 0 && (

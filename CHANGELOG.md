@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.29.1 - 2026-10-29
+
+- Agent IDE: Tasks says what to do when the open terminal is not in a repository, instead of showing the raw git error. Automations now opens the editor on the automation you picked, whether you pressed Edit or started from a template.
+
 ## 1.29.0 - 2026-10-29
 
 - The agent character animation (Ember, Miso and Piko) is gone. The pane beside agent terminals, its Appearance settings (animation, style, character, weather) and the live weather lookup were all removed, so nothing in TermFlow reaches out to a weather service any more.

@@ -127,4 +127,15 @@ describe('saved command store actions', () => {
     useSavedCommandStore.getState().remove(useSavedCommandStore.getState().commands[0].id)
     expect(useSavedCommandStore.getState().commands).toEqual([])
   })
+
+  it('show carries the command to edit, and clearEdit drops it', () => {
+    useSavedCommandStore.getState().add('Build', 'npm run build', 'cmd')
+    const id = useSavedCommandStore.getState().commands[0].id
+    useSavedCommandStore.getState().show(id)
+    expect(useSavedCommandStore.getState()).toMatchObject({ open: true, editId: id })
+    useSavedCommandStore.getState().clearEdit()
+    expect(useSavedCommandStore.getState().editId).toBeNull()
+    useSavedCommandStore.getState().show()
+    expect(useSavedCommandStore.getState().editId).toBeNull()
+  })
 })
