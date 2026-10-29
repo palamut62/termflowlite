@@ -46,6 +46,7 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Her iki surum de CI'da yesil (7 asset), Agent IDE 1.29.1 sessiz kuruldu. Kurulu surumde gozle denenmedi.
 - **1.30.0 Eller serbest ses:** Elchi (Handy fork'u) incelemesinden: `Ctrl+Shift+Space` kilitli kayit + sessizlikte bitirme (`voice/handsFree.ts`), ajan sekmelerinde "gönder/send/enter" ile Enter (`sendWord`, varsayilan kapali), Terms listesi. Ayarlar > Voice, `docs/voice-input.md` "Eller serbest". verify yesil, yeni birim testler. Gercek mikrofonla denenmedi.
 - **1.30.0 Broadcast gorunurlugu:** broadcast acikken girdi alan split panelleri kirmizi cerceveli (`isBroadcastTarget`, `PaneLeaf.tsx`), SSH panellerinde kosede host etiketi (`sshTarget`), rozet hedef sayisini ya da "this tab only" gosteriyor (aktif sekme split disindaysa). 1 birim test. Gozle denenmedi.
+- Site: f9 (eller serbest, "gönder", terimler) ve Toplu girdi (cerceve + SSH host) metinleri EN/TR, Vercel prod. Yerel onizleme portu 4185 (4173 Windows ayrilmis).
 
 ## Onceki oturum (2026-10-28, dal feature/phone-push)
 - **1.28.0 yayinda (2026-10-28):** dal main'e birlestirildi (verify yesil), `v1.28.0` etiketi itildi, Release + verify-release 7/7 yesil (run 40665062742). Site: Remote bolumune ekran paylasimi maddesi (EN/TR), Vercel prod; indirme linkleri main.js'te GitHub API'den geldigi icin elle surum guncellemesi gerekmiyor.
