@@ -39,8 +39,11 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
 - Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Son oturum (2026-10-29, son arac: Claude Code, dal feature/phone-push)
-- **Ajan karakteri kaldirildi:** AgentCompanion/characterEngine/characterState, `fun/agentActivity.ts`, `fun/weather.ts`, `main/weather*`, `ipc/weather.ts`, hava IPC + preload, Appearance ayarlari (animasyon/stil/karakter/hava) ve `settings` alanlari, site bolumu (`website/companion.js`, `scripts/site-companion.ts`, f3/cd metinleri, `build:site`). verify yesil; paketlenip kurulmadi, site deploy edilmedi.
+## Son oturum (2026-10-29, son arac: Claude Code, dal main)
+- **1.29.0 yayinda:** ajan karakteri (Ember/Miso/Piko) uygulamadan ve siteden kaldirildi - AgentCompanion/characterEngine/characterState, `fun/agentActivity.ts`, `fun/weather.ts`, `main/weather*`, hava IPC + preload, Appearance ayarlari ve `settings` alanlari, site bolumu + `build:site`. Open-Meteo entegrasyonu da gitti; artik disariya hava istegi yok.
+- **1.29.1 yayinda:** Agent IDE sidebar ust ogeleri (Search/Tasks/Artifacts/Automations/Mobile) gercek uygulamada tek tek denendi, hepsi calisiyor. Iki eksik duzeltildi: Tasks depo disinda ham git hatasi yerine yol gosteriyor; Automations'ta Edit ve sablon kaydi dogrudan duzenleyiciye yukluyor (`savedCommandStore.show(editId)` + `clearEdit`, 1 birim test).
+- Site: Wrapped bolumunun gorseli yenilendi (eski gorselde karakter paneli vardi), `output/wrapped-shot.mjs` ile cekildi. Vercel prod iki kez guncellendi.
+- Her iki surum de CI'da yesil (7 asset), Agent IDE 1.29.1 sessiz kuruldu. Kurulu surumde gozle denenmedi.
 
 ## Onceki oturum (2026-10-28, dal feature/phone-push)
 - **1.28.0 yayinda (2026-10-28):** dal main'e birlestirildi (verify yesil), `v1.28.0` etiketi itildi, Release + verify-release 7/7 yesil (run 40665062742). Site: Remote bolumune ekran paylasimi maddesi (EN/TR), Vercel prod; indirme linkleri main.js'te GitHub API'den geldigi icin elle surum guncellemesi gerekmiyor.
