@@ -15,6 +15,7 @@ let app: ElectronApplication
 let win: Page
 let server: Server
 let userData = ''
+let openRouterUrl = ''
 const requests: { model: string; system: string; audio: string }[] = []
 let reply = 'git status --short'
 
@@ -33,6 +34,7 @@ test.beforeEach(async () => {
   })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const port = (server.address() as { port: number }).port
+  openRouterUrl = `http://127.0.0.1:${port}/api/v1/chat/completions`
   userData = mkdtempSync(join(tmpdir(), 'termflow-e2e-voice-'))
   writeFileSync(join(userData, 'settings.json'), JSON.stringify({
     gpuAcceleration: 'off', motion: 'off', showTips: false, closeToTray: false, confirmBeforeClose: false, restoreSession: false,
@@ -94,6 +96,45 @@ test('Escape while recording cancels without uploading', async () => {
   await expect(win.locator('.voice-indicator')).toHaveCount(0)
   await win.waitForTimeout(500)
   expect(requests).toHaveLength(0)
+})
+
+/** 1.5 s of speech-like bursts, then 3 s of silence, as 16-bit mono WAV for Chromium's fake microphone. */
+function speechThenSilence(file: string): void {
+  const rate = 16_000
+  const samples = new Int16Array(rate * 4.5)
+  for (let i = 0; i < rate * 1.5; i++) {
+    const t = i / rate
+    // Syllable-like: a voice-band tone gated at 4 Hz, so noise suppression does not treat it as steady noise.
+    samples[i] = Math.round(Math.sin(2 * Math.PI * 220 * t) * Math.max(0, Math.sin(2 * Math.PI * 4 * t)) * 0.5 * 32767)
+  }
+  const data = Buffer.from(samples.buffer)
+  const header = Buffer.alloc(44)
+  header.write('RIFF', 0); header.writeUInt32LE(36 + data.length, 4); header.write('WAVE', 8)
+  header.write('fmt ', 12); header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22)
+  header.writeUInt32LE(rate, 24); header.writeUInt32LE(rate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34)
+  header.write('data', 36); header.writeUInt32LE(data.length, 40)
+  writeFileSync(file, Buffer.concat([header, data]))
+}
+
+test('Ctrl+Shift+Space records hands-free and stops by itself after silence', async () => {
+  await app.close()
+  const wav = join(userData, 'speech.wav')
+  speechThenSilence(wav)
+  app = await electron.launch({
+    args: ['.', '--no-sandbox', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-audio-capture=${wav}%noloop`],
+    env: { ...process.env, TERMFLOW_E2E: '1', TERMFLOW_E2E_USER_DATA: userData, TERMFLOW_E2E_OPENROUTER_URL: openRouterUrl }
+  })
+  win = await app.firstWindow()
+  await win.waitForSelector('.terminal-host .xterm')
+  await win.locator('.terminal-host .xterm').first().click()
+  await expect.poll(terminalText, { timeout: 15_000 }).toContain('>')
+  await win.keyboard.press('Control+Shift+Space')
+  await expect(win.locator('.voice-indicator')).toContainText('Hands-free', { timeout: 5_000 })
+  await win.screenshot({ path: 'test-results/voice-hands-free.png' })
+  // No key is held: the silence after the speech must end it.
+  await expect.poll(terminalText, { timeout: 15_000 }).toContain('git status --short')
+  await expect(win.locator('.voice-indicator')).toHaveCount(0)
+  expect(requests).toHaveLength(1)
 })
 
 test('Settings > Voice lists audio models and tests the selected one', async () => {
