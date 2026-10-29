@@ -94,11 +94,12 @@
     'f10.alt': 'Kurulu ajan CLI\'larını tam yetki bayraklarıyla listeleyen Ayarlar > Profiles ve yeni bir ajan bulunduğunu söyleyen bildirim',
 
     'f9.title': 'Yazmak yerine konuş',
-    'f9.text': "Space'i basılı tut ve konuş, bırakınca metin imlecin olduğu yere temizlenmiş olarak gelir; Enter'a basmadan önce kontrol edersin. Kısa basış hâlâ boşluktur.",
+    'f9.text': "Space'i basılı tut ve konuş, bırakınca metin imlecin olduğu yere temizlenmiş olarak gelir; Enter'a basmadan önce kontrol edersin. Kısa basış hâlâ boşluktur. Uzun istekler için <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Space</kbd>'e bir kez bas ve konuş: durunca kendisi biter.",
     'f9.li1': 'Noktalama ve yazım düzelir, dolgu sözcükleri atılır, komutlar ve dosya adları senin yazacağın gibi yazılır',
     'f9.li2': "Nerede olduğunu bilir: kabuk isteminde komut, Claude Code, Codex ve OpenCode'da istek yazar",
     'f9.li3': "Türkçe ve İngilizce; seçtiğin OpenRouter modeli ve kendi anahtarınla çalışır, on saniyelik konuşmanın maliyeti yaklaşık yüzde bir sent",
-    'f9.li4': "Sen açana kadar kapalıdır; Space'i basılı tutmadıkça hiçbir şey kaydedilmez, Esc iptal eder",
+    'f9.li4': "Sen açana kadar kapalıdır; Space'i basılı tutmadıkça ya da Ctrl+Shift+Space'e basmadıkça hiçbir şey kaydedilmez, Esc iptal eder",
+    'f9.li5': 'Ajan sekmelerinde sonunda "gönder" dersen Enter senin yerine basılır; kendi adlarını ve terimlerini ekle, doğru yazılsın',
     'f9.alt': 'Dikte edilen bir komut PowerShell isteminde beklerken Dinliyor göstergesi ikinci bir kaydı gösteriyor',
 
     'f4.title': 'Daha az yaz, daha çok bul',
@@ -139,7 +140,7 @@
     'more.quake': 'Quake modu',
     'more.quakeText': 'Genel bir kısayolla pencereyi ekranın üstünden aşağı indir.',
     'more.broadcast': 'Toplu girdi',
-    'more.broadcastText': '<kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>B</kbd> ile bir kez yaz, bölmedeki tüm panellere gitsin.',
+    'more.broadcastText': '<kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>B</kbd> ile bir kez yaz, bölmedeki tüm panellere gitsin. Yazdığını alan paneller kırmızı çerçeveyle işaretlenir, SSH panelleri host adını gösterir.',
     'more.open': "TermFlow Lite'ta aç",
     'more.openText': 'Windows Gezgini menüsünden herhangi bir kabuğu ya da ajanı bir klasörde başlat.',
     'more.tray': 'Tepsiye kapat',
