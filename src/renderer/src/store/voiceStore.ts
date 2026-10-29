@@ -11,6 +11,8 @@ interface VoiceState {
   startedAt: number
   /** Microphone loudness 0..1 for the meter. */
   level: number
+  /** Hands-free recording (Ctrl+Shift+Space): no key is held. */
+  locked: boolean
   set(patch: Partial<Omit<VoiceState, 'set'>>): void
 }
 
@@ -21,5 +23,6 @@ export const useVoiceStore = create<VoiceState>()((set) => ({
   tabId: null,
   startedAt: 0,
   level: 0,
+  locked: false,
   set: (patch) => set(patch)
 }))

@@ -1,5 +1,9 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.30.0 - 2026-10-29
+
+- Everything in TermFlow Lite 1.30.0: hands-free voice input (Ctrl+Shift+Space, stops when you pause), say "send" to submit in agent tabs, a terms list for dictation, and broadcast frames on the split panes that receive your typing, with the SSH host shown in the corner of remote panes.
+
 ## 1.29.1 - 2026-10-29
 
 - Tasks says what to do when the open terminal is not in a repository, instead of showing the raw git error. Automations opens the editor on the automation you picked, whether you pressed Edit or started from a template.

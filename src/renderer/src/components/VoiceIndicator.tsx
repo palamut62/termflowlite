@@ -11,6 +11,7 @@ export function VoiceIndicator(): React.JSX.Element | null {
   const level = useVoiceStore((s) => s.level)
   const startedAt = useVoiceStore((s) => s.startedAt)
   const speaking = useVoiceStore((s) => s.speaking)
+  const locked = useVoiceStore((s) => s.locked)
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export function VoiceIndicator(): React.JSX.Element | null {
             <span className="voice-meter" aria-hidden="true">
               {Array.from({ length: BARS }, (_, i) => <span key={i} className={i < lit ? 'on' : ''} style={{ height: `${6 + i * 3}px` }} />)}
             </span>
-            <span className="voice-hint">Release to insert · Esc to cancel</span>
+            <span className="voice-hint">{locked ? 'Hands-free · pause or Space to insert · Esc to cancel' : 'Release to insert · Esc to cancel'}</span>
           </>
         )}
     </div>

@@ -4,6 +4,7 @@ import { useSettingsStore } from '../store/settingsStore'
 import { useTerminalStore } from '../store/terminalStore'
 import { useToastStore } from '../store/toastStore'
 import { useVoiceStore } from '../store/voiceStore'
+import { silenceDetector, splitSendWord } from './handsFree'
 import { HoldToTalk } from './holdToTalk'
 import { MAX_RECORDING_MS, microphoneError, startRecording, type Recording } from './recorder'
 
@@ -34,13 +35,26 @@ function finishSession(): void {
   session = null
 }
 
-async function begin(tabId: string, hold: HoldToTalk, term: Terminal): Promise<void> {
+async function begin(tabId: string, hold: HoldToTalk, term: Terminal, locked: boolean): Promise<void> {
   if (session) cancel()
   const current = { tabId, hold, recording: null as Recording | null, stopRequested: false, cancelled: false, limit: null as ReturnType<typeof setTimeout> | null }
   session = current
-  useVoiceStore.getState().set({ phase: 'starting', tabId, startedAt: Date.now(), level: 0 })
+  useVoiceStore.getState().set({ phase: 'starting', tabId, startedAt: Date.now(), level: 0, locked })
+  // Hands-free: nobody releases a key, so silence ends the recording.
+  const silent = locked ? silenceDetector(useSettingsStore.getState().settings.voice.silenceMs, Date.now()) : null
+  const onLevel = (level: number): void => {
+    useVoiceStore.getState().set({ level })
+    const verdict = silent?.(level, Date.now())
+    if (!verdict || session !== current) return
+    hold.stopFromOutside()
+    if (verdict === 'stop') void stop(term)
+    else {
+      cancel()
+      toast('Nothing was heard.')
+    }
+  }
   try {
-    current.recording = await startRecording((level) => useVoiceStore.getState().set({ level }))
+    current.recording = await startRecording(onLevel)
   } catch (error) {
     finishSession()
     hold.stopFromOutside()
@@ -77,11 +91,20 @@ async function stop(term: Terminal): Promise<void> {
   }
   useVoiceStore.getState().set({ phase: 'transcribing', level: 0 })
   try {
-    const answer = await window.termflow.voice.transcribe(result.wav, contextFor(current.tabId))
+    const context = contextFor(current.tabId)
+    const answer = await window.termflow.voice.transcribe(result.wav, context)
     if (!answer.ok) toast(answer.error ?? 'The recording could not be transcribed.', 'error')
     else if (!answer.text) toast('No speech was recognized.')
-    // paste() follows bracketed paste, so a multi-line prompt stays one block; Enter is left to the user.
-    else term.paste(answer.text)
+    else {
+      // Spoken "send" presses Enter, only in agent tabs: at a shell it would run a command unseen.
+      const { text, send } = context.kind === 'agent' && useSettingsStore.getState().settings.voice.sendWord
+        ? splitSendWord(answer.text)
+        : { text: answer.text, send: false }
+      // paste() follows bracketed paste, so a multi-line prompt stays one block; Enter is left to the user.
+      if (text) term.paste(text)
+      // A short gap so the agent has taken the paste before Enter arrives.
+      if (send) setTimeout(() => term.input('\r', true), 80)
+    }
   } catch {
     toast('The recording could not be transcribed.', 'error')
   } finally {
@@ -104,7 +127,7 @@ export function createVoiceInput(tabId: string, term: Terminal): HoldToTalk {
     holdMs: () => useSettingsStore.getState().settings.voice.holdMs,
     enabled: () => useSettingsStore.getState().settings.voice.enabled && useVoiceStore.getState().phase !== 'transcribing',
     onTap: () => term.input(' ', true),
-    onStart: () => void begin(tabId, hold, term),
+    onStart: (locked) => void begin(tabId, hold, term, locked),
     onStop: () => void stop(term),
     onCancel: () => {
       cancel()

@@ -30,7 +30,11 @@ export function registerVoiceIpc(deps: VoiceIpcDeps): void {
     if (!(wav instanceof Uint8Array) || wav.length > MAX_VOICE_BYTES) return { ok: false, text: '', model, latencyMs: 0, error: 'The recording could not be used.' }
     const apiKey = deps.getApiKey()
     if (!apiKey) return { ok: false, text: '', model, latencyMs: 0, error: NO_KEY }
-    return transcribe({ apiKey, model, wav, cleanup: voice.cleanup, language: voice.language, context: validContext(context), url: deps.url })
+    const where = validContext(context)
+    return transcribe({
+      apiKey, model, wav, cleanup: voice.cleanup, language: voice.language, context: where,
+      terms: voice.terms, sendWord: voice.sendWord && where.kind === 'agent', url: deps.url
+    })
   })
 
   ipcMain.handle(IPC.VOICE_SYNTH, async (_event, text: unknown): Promise<SpeakResult> => {

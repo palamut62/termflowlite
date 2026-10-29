@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS, type ShellInfo } from '../../../shared/types'
 import { useSettingsStore } from './settingsStore'
-import { broadcastTargetIds, useTerminalStore } from './terminalStore'
+import { broadcastTargetIds, isBroadcastTarget, useTerminalStore } from './terminalStore'
 
 /**
  * Renderer store tests run in the plain node vitest environment — the
@@ -245,6 +245,15 @@ describe('broadcastTargetIds', () => {
 
   it('ignores panes the tab does not belong to', () => {
     expect(broadcastTargetIds('z', ['a', 'b'], true)).toEqual(['z'])
+  })
+
+  it('frames only the panes that receive the active tab input', () => {
+    expect(isBroadcastTarget('b', 'a', ['a', 'b'], true)).toBe(true)
+    expect(isBroadcastTarget('c', 'a', ['a', 'b'], true)).toBe(false)
+    expect(isBroadcastTarget('a', 'a', ['a', 'b'], false)).toBe(false)
+    // Switched to a tab outside the split: nothing is framed.
+    expect(isBroadcastTarget('a', 'z', ['a', 'b'], true)).toBe(false)
+    expect(isBroadcastTarget('a', null, ['a', 'b'], true)).toBe(false)
   })
 
   it('toggleBroadcastInput flips the session-only flag', () => {

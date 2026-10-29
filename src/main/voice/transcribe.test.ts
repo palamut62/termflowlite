@@ -59,6 +59,9 @@ describe('prompt and reply', () => {
     expect(systemPrompt(true, 'tr', { kind: 'agent', name: 'Claude Code' })).toContain('coding agent Claude Code')
     expect(systemPrompt(false, 'en', shell)).toContain('exactly as spoken')
     expect(systemPrompt(true, 'tr', shell)).toContain('Turkish characters')
+    expect(systemPrompt(true, 'tr', shell, ['TermFlow', 'pnpm'])).toContain('exactly like this: TermFlow, pnpm.')
+    expect(systemPrompt(true, 'tr', shell)).not.toContain('exactly like this')
+    expect(systemPrompt(true, 'tr', shell, [], true)).toContain('"gönder"')
   })
 
   it('strips quotes, fences, labels and silence notes', () => {

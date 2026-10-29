@@ -18,6 +18,14 @@ const LANGUAGES: { value: VoiceLanguage; label: string }[] = [
   { value: 'en', label: 'English' }
 ]
 
+const SILENCE = [
+  { value: '1000', label: 'After 1 s of silence' },
+  { value: '1500', label: 'After 1.5 s of silence' },
+  { value: '2500', label: 'After 2.5 s of silence' },
+  { value: '4000', label: 'After 4 s of silence' },
+  { value: '0', label: 'Only with Space' }
+]
+
 function testText(result: VoiceResult): string {
   if (!result.ok) return result.error ?? 'Test failed'
   return `Works · ${(result.latencyMs / 1000).toFixed(1)} s${result.cost !== undefined ? ` · ${usd(result.cost)}` : ''}`
@@ -35,6 +43,8 @@ export function VoiceSettings(): React.JSX.Element {
   const [testing, setTesting] = useState(false)
   const [test, setTest] = useState<VoiceResult | null>(null)
   const [speakTest, setSpeakTest] = useState('')
+  // Edited as text and saved on blur, so a trailing comma survives typing.
+  const [terms, setTerms] = useState(voice.terms.join(', '))
 
   const refreshKey = useCallback(async (): Promise<void> => {
     setHasKey(await window.termflow.providerSecrets.has(SECRET_ID))
@@ -119,7 +129,8 @@ export function VoiceSettings(): React.JSX.Element {
       <p className="settings-note">
         Hold <strong>Space</strong> in a terminal and speak; release it and the text is typed where the cursor is, cleaned up and
         without pressing Enter. A short press still types a space. Works at shell prompts and in Claude Code, Codex and OpenCode.
-        Esc while recording cancels.
+        Esc while recording cancels. For longer requests press <strong>Ctrl+Shift+Space</strong> once and just talk: it stops by
+        itself when you pause.
       </p>
 
       <Field label="Enable voice input" hint="Hold Space to dictate">
@@ -129,7 +140,7 @@ export function VoiceSettings(): React.JSX.Element {
         <div className="memory-consent" role="alertdialog" aria-label="Enable voice input">
           <strong>What is sent to OpenRouter</strong>
           <span>
-            Each recording (only while you hold Space) is sent to the chosen OpenRouter model to be turned into text, together
+            Each recording (only while you hold Space or after Ctrl+Shift+Space) is sent to the chosen OpenRouter model to be turned into text, together
             with the kind of terminal you type into. Nothing is recorded otherwise, and recordings are not kept on this computer.
           </span>
           <div className="profile-form-actions">
@@ -168,6 +179,21 @@ export function VoiceSettings(): React.JSX.Element {
       </Field>
       <Field label="Hold time" hint="How long Space is held before recording starts (ms)">
         <NumberInput value={voice.holdMs} min={250} max={1000} step={50} onChange={(holdMs) => void patch({ holdMs })} />
+      </Field>
+      <Field label="Hands-free stop" hint="Ctrl+Shift+Space records without holding a key; it ends after this much silence (or press Space)">
+        <Select value={String(voice.silenceMs)} options={SILENCE} onChange={(value) => void patch({ silenceMs: Number(value) })} />
+      </Field>
+      <Field label="Say &quot;send&quot; to submit" hint="In Claude Code, Codex and OpenCode: end with &quot;gönder&quot;, &quot;send&quot; or &quot;enter&quot; and Enter is pressed. Never at a shell prompt">
+        <Toggle checked={voice.sendWord} label="Say send to submit" onChange={(sendWord) => void patch({ sendWord })} />
+      </Field>
+      <Field label="Terms" hint="Names and words to spell exactly like this, separated by commas (e.g. TermFlow, Vercel, pnpm)">
+        <TextInput
+          className="settings-input-wide"
+          value={terms}
+          onChange={(e) => setTerms(e.target.value)}
+          onBlur={() => void patch({ terms: terms.split(',').map((t) => t.trim()).filter(Boolean) })}
+          placeholder="TermFlow, Vercel, pnpm"
+        />
       </Field>
 
       <div className="settings-section-title"><Volume2 size={14} /> Read Aloud</div>

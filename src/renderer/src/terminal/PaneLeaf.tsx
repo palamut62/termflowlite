@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Server } from 'lucide-react'
 import { TerminalView } from './TerminalView'
-import { useTerminalStore } from '../store/terminalStore'
+import { sshFromProfileId } from '../../../shared/profiles'
+import { sshTarget } from '../../../shared/sshArgs'
+import { useSettingsStore } from '../store/settingsStore'
+import { isBroadcastTarget, useTerminalStore } from '../store/terminalStore'
 import { dropEdgeFor, type PaneDropEdge } from '../paneUtils'
 
 /** Private drag type so terminal panes never react to unrelated drags. */
@@ -16,6 +19,10 @@ const PANE_DRAG_TYPE = 'application/x-termflow-pane'
 export function PaneLeaf({ terminalId, active }: { terminalId: string; active: boolean }): React.JSX.Element {
   const [edge, setEdge] = useState<PaneDropEdge | null>(null)
   const [dragging, setDragging] = useState(false)
+  // Same rule as the input path, so the frame marks exactly the panes that receive typing.
+  const broadcastTarget = useTerminalStore((s) => isBroadcastTarget(terminalId, s.activeTabId, s.splitTabIds, s.broadcastInput))
+  const profileId = useTerminalStore((s) => s.tabs.find((tab) => tab.id === terminalId)?.profileId)
+  const ssh = useSettingsStore((s) => (profileId ? sshFromProfileId(s.settings, profileId) : undefined))
 
   const onDragStart = (event: React.DragEvent<HTMLElement>): void => {
     event.dataTransfer.setData(PANE_DRAG_TYPE, terminalId)
@@ -52,13 +59,15 @@ export function PaneLeaf({ terminalId, active }: { terminalId: string; active: b
 
   return (
     <div
-      className={`pane-leaf${active ? ' pane-leaf-active' : ''}${dragging ? ' pane-leaf-dragging' : ''}`}
+      className={`pane-leaf${active ? ' pane-leaf-active' : ''}${dragging ? ' pane-leaf-dragging' : ''}${broadcastTarget ? ' pane-leaf-broadcast' : ''}`}
       data-tab-id={terminalId}
       onDragOver={onDragOver}
       onDragLeave={() => setEdge(null)}
       onDrop={onDrop}
     >
       <TerminalView tabId={terminalId} active={active} visible />
+      {/* In a split it is easy to lose track of which pane is on which machine. */}
+      {ssh && <span className="pane-host" title={`SSH connection: ${ssh.name}`}><Server size={10} />{sshTarget(ssh)}</span>}
       <span
         className="pane-grip"
         draggable

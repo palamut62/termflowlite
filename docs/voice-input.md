@@ -25,6 +25,19 @@ girdilerinde ayni calisir.
   (sure + maliyet), basili tutma suresi, dil (otomatik/Turkce/Ingilizce).
 - Telefon istemcisine eklenmez (telefon klavyesinin kendi dikte dugmesi var).
 
+## Eller serbest (2026-10-29)
+Elchi (elchi.xyz, Handy fork'u) incelemesinden alindi; wake word / surekli dinleme ve canli metin
+bilincli olarak yok (sesin surekli OpenRouter'a gitmesi, OpenRouter'da akisli STT yok).
+- `Ctrl+Shift+Space` kaydi kilitler, tus basili tutulmaz. Space ya da tekrar `Ctrl+Shift+Space`
+  bitirir, Esc iptal eder, odak kaybi iptal eder, en fazla 60 sn.
+- Sessizlikte bitirme: konusma duyulduktan sonra `silenceMs` (varsayilan 1500; 1000/2500/4000;
+  0 = yalniz Space) sessizlik olunca kayit biter ve yaziya cevrilir. Konusma esigi RMS 0.015;
+  10 sn hic konusma yoksa kayit gonderilmeden iptal edilir (`voice/handsFree.ts`).
+- "Gonder" ile onay (`sendWord`, varsayilan kapali): yalniz ajan sekmelerinde, metin "gönder",
+  "send" ya da "enter" ile biterse kelime silinir, metin yapistirilir, 80 ms sonra Enter. Shell'de
+  hic calismaz (gorulmeden komut calistirmasin). Istege kelimeyi korumasi soylenir.
+- Terimler (`terms`, en fazla 50): istege "bu adlari tam boyle yaz" olarak eklenir.
+
 ## Test
 - Birim: WAV kodlayici, basili tutma durum makinesi, istek govdesi/yanit ayrıstirma (fetch mock),
   model katalogunda ses bayragi.

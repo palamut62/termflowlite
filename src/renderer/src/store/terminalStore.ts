@@ -50,6 +50,12 @@ export function broadcastTargetIds(tabId: string, splitTabIds: string[] | null, 
   return splitTabIds.includes(tabId) ? [...splitTabIds] : [tabId]
 }
 
+/** Whether a pane gets the broadcast frame: it receives what is typed in the active tab, along with others. */
+export function isBroadcastTarget(paneId: string, activeTabId: string | null, splitTabIds: string[] | null, broadcast: boolean): boolean {
+  const targets = broadcastTargetIds(activeTabId ?? '', splitTabIds, broadcast)
+  return targets.length > 1 && targets.includes(paneId)
+}
+
 function makeTab(profileId: string, cwd?: string, resumeSession?: AgentSessionRef, launchCommand?: string, permissionMode?: AgentPermissionMode, worktree?: TabWorktree): TerminalTab {
   const settings = useSettingsStore.getState().settings
   const model = providerFromProfileId(settings, profileId)?.model ?? mergeProfiles(settings.profiles).find(p => p.id === profileId)?.model

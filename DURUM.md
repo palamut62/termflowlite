@@ -7,7 +7,7 @@ guncel: 2026-10-29
 
 ## Ne bu proje
 Minimal, hizli, cok ozellestirilebilir capraz platform (Windows/Linux) terminal; gelistiriciler ve CLI ajan kullanicilari icin.
-Stack: Electron (electron-vite), React, TypeScript, xterm.js, node-pty. Surum 1.28.0 (freeware, kapali kaynak).
+Stack: Electron (electron-vite), React, TypeScript, xterm.js, node-pty. Surum 1.30.0 (freeware, kapali kaynak).
 Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamut62/termflow-lite`. Site: termflowlite.lol (Vercel, `website/`).
 
 ## Calistir / test et
@@ -44,6 +44,8 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - **1.29.1 yayinda:** Agent IDE sidebar ust ogeleri (Search/Tasks/Artifacts/Automations/Mobile) gercek uygulamada tek tek denendi, hepsi calisiyor. Iki eksik duzeltildi: Tasks depo disinda ham git hatasi yerine yol gosteriyor; Automations'ta Edit ve sablon kaydi dogrudan duzenleyiciye yukluyor (`savedCommandStore.show(editId)` + `clearEdit`, 1 birim test).
 - Site: Wrapped bolumunun gorseli yenilendi (eski gorselde karakter paneli vardi), `output/wrapped-shot.mjs` ile cekildi. Vercel prod iki kez guncellendi.
 - Her iki surum de CI'da yesil (7 asset), Agent IDE 1.29.1 sessiz kuruldu. Kurulu surumde gozle denenmedi.
+- **1.30.0 Eller serbest ses:** Elchi (Handy fork'u) incelemesinden: `Ctrl+Shift+Space` kilitli kayit + sessizlikte bitirme (`voice/handsFree.ts`), ajan sekmelerinde "gönder/send/enter" ile Enter (`sendWord`, varsayilan kapali), Terms listesi. Ayarlar > Voice, `docs/voice-input.md` "Eller serbest". verify yesil, yeni birim testler. Gercek mikrofonla denenmedi.
+- **1.30.0 Broadcast gorunurlugu:** broadcast acikken girdi alan split panelleri kirmizi cerceveli (`isBroadcastTarget`, `PaneLeaf.tsx`), SSH panellerinde kosede host etiketi (`sshTarget`), rozet hedef sayisini ya da "this tab only" gosteriyor (aktif sekme split disindaysa). 1 birim test. Gozle denenmedi.
 
 ## Onceki oturum (2026-10-28, dal feature/phone-push)
 - **1.28.0 yayinda (2026-10-28):** dal main'e birlestirildi (verify yesil), `v1.28.0` etiketi itildi, Release + verify-release 7/7 yesil (run 40665062742). Site: Remote bolumune ekran paylasimi maddesi (EN/TR), Vercel prod; indirme linkleri main.js'te GitHub API'den geldigi icin elle surum guncellemesi gerekmiyor.
@@ -54,14 +56,8 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - verify yesil; Lite + Agent IDE 1.27.1 derlendi, Agent IDE sessiz kuruldu. Kurulu surumde gozle denenmedi; surum artmadi, yayinlanmadi.
 - Not: SSH sekmeleri de artik yerel home projesi altinda gorunur (onceden hic gorunmuyordu); istenmezse ayrilabilir.
 
-## Daha onceki oturum (2026-10-27, dal feature/phone-push)
-- ntfy "needs you" bildirimine Approve (Enter) / Reject (Esc) butonlari: tek kullanimlik token, `POST /api/push-action` (`phonePush.ts PushActionTokens`, `RemoteController.pushActions`). Spec `docs/orca-parity/remote-attention.md` sonu.
-- Telefon istemcisi: iPhone uygulamasi koprusu `src/remote/src/native.ts` (pano, ekran acik, haptik, basili tut-konus, Face ID, bilgisayarlar), Quick prompts, Copy text, Project > Review changes (`scm:diff` izin listesinde). `docs/remote-access.md` sonu. iOS tarafi `../termflow-lite-ios` (commit b764c6b).
-- iPhone widget/Live Activity/paylasim icin `GET /api/status` + `POST /api/type` (Enter'siz, kontrol karakterleri temiz), sayfadan `status` mesaji; `agentForProfile` artik Pick<> aliyor. iOS ca2dfdd.
-- verify yesil. Yayinlanmadi, surum artmadi. Gercek iPhone + ntfy ile denenmedi.
-
-
 ## Yarim kalan / siradaki adim
+- **1.30.0 (2026-10-29):** kurulu surumde gercek mikrofonla dene (Ctrl+Shift+Space, sessizlik esigi 0.015 RMS uygun mu, Claude Code'da "gönder" Enter'i) ve split'te broadcast cercevesi + SSH etiketini gozle kontrol et; esik gerekirse `voice/handsFree.ts` SPEECH_LEVEL
 - **Ekran paylasimi (2026-10-28):** PC'ye UltraVNC/TightVNC *servis* olarak kurulmali (parola + varsayilan port, mumkunse yalniz loopback), sonra Ayarlar > Remote Access > Screen acilip telefonda Screen sekmesi denenmeli: baglanma, parola, dokunma-fare, klavye tusu, Ctrl+Alt+Del, tam ekran, kilit ekraninda sifre girme. Yeni ozellik: surum artar, CI yayinlar
 - **Telefon bildirimi + iOS uygulamasi (2026-10-27):** paketle + kur (asagidaki kural), iPhone'a yeni iOS surumunu `xtool dev` ile kur, gercek telefonla dene: ntfy Approve/Reject, native tuslar, Face ID, Kisayol linkleri, Review changes. Sonra surum + CHANGELOG + yayin karari. Detay `docs/orca-parity/remote-attention.md`, `docs/remote-access.md`
 - **Telefondan dosya yukleme (2026-10-23, commitlendi, yayinlanmadi):** kod + birim test tamam (`remote/uploads.ts`, `POST /api/upload`, key bar ataç butonu; `docs/remote-access.md`). Gercek telefonla denenmedi; paketlenip kurulmadi (yeni ozellik: surum artar, CI yayinlar)

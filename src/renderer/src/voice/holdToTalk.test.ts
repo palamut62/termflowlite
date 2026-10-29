@@ -8,7 +8,7 @@ function setup(enabled = true) {
     holdMs: () => 400,
     enabled: () => enabled,
     onTap: () => log.push('tap'),
-    onStart: () => log.push('start'),
+    onStart: (locked) => log.push(locked ? 'lock' : 'start'),
     onStop: () => log.push('stop'),
     onCancel: () => log.push('cancel'),
     setTimer: (cb) => { pending = cb; return 1 },
@@ -70,6 +70,34 @@ describe('HoldToTalk', () => {
     expect(setup().ev('keydown', ' ', { ctrlKey: true })).toBe(false)
     expect(setup().ev('keydown', ' ', { shiftKey: true })).toBe(false)
     expect(setup().ev('keydown', ' ', { isComposing: true })).toBe(false)
+  })
+
+  it('Ctrl+Shift+Space records hands-free until Space', () => {
+    const { log, ev, hold } = setup()
+    const lock = { ctrlKey: true, shiftKey: true }
+    expect(ev('keydown', ' ', lock)).toBe(true)
+    expect(ev('keydown', ' ', { ...lock, repeat: true })).toBe(true)
+    expect(ev('keyup', ' ', lock)).toBe(true)
+    expect(hold.recording).toBe(true)
+    expect(ev('keydown', 'x')).toBe(true)
+    expect(ev('keydown', ' ')).toBe(true)
+    expect(log).toEqual(['lock', 'stop'])
+    expect(ev('keyup', ' ')).toBe(false) // idle again, nothing typed
+    expect(hold.recording).toBe(false)
+  })
+
+  it('hands-free: Escape cancels, silence stops from outside', () => {
+    const a = setup()
+    a.ev('keydown', ' ', { ctrlKey: true, shiftKey: true })
+    a.ev('keydown', 'Escape')
+    expect(a.log).toEqual(['lock', 'cancel'])
+    expect(a.ev('keydown', ' ')).toBe(true) // ready for hold-to-talk
+    const b = setup()
+    b.ev('keydown', ' ', { ctrlKey: true, shiftKey: true })
+    b.hold.stopFromOutside()
+    expect(b.hold.recording).toBe(false)
+    expect(b.ev('keydown', ' ', { ctrlKey: true, shiftKey: true })).toBe(true)
+    expect(b.log).toEqual(['lock', 'lock'])
   })
 
   it('losing focus cancels a recording', () => {

@@ -503,6 +503,12 @@ export interface VoiceSettings {
   /** Fix punctuation, drop filler words and spell technical terms; off keeps the words as spoken. */
   cleanup: boolean
   language: VoiceLanguage
+  /** Hands-free (Ctrl+Shift+Space): stop after this much silence once speech was heard (ms, 0 = never). */
+  silenceMs: number
+  /** In agent tabs, ending with "gönder" / "send" / "enter" presses Enter after the text. */
+  sendWord: boolean
+  /** Names and terms the model should spell exactly like this. */
+  terms: string[]
   /** Read selected terminal text aloud with a local Turkish voice (tts-studyo). */
   speak: SpeakSettings
 }
@@ -897,7 +903,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   asciiBackgrounds: {},
   memory: { enabled: false, updateEvery: 'hourly', model: 'deepseek/deepseek-v4-flash', excludedProjects: [] },
   remote: { enabled: false, port: 47321, push: { enabled: false, server: 'https://ntfy.sh', topic: '' }, screen: { enabled: false, port: 5900 } },
-  voice: { enabled: false, model: 'google/gemini-2.5-flash-lite', holdMs: 400, cleanup: true, language: 'auto', speak: { enabled: false, model: 'antalia', speed: 1, studioDir: '' } },
+  voice: { enabled: false, model: 'google/gemini-2.5-flash-lite', holdMs: 400, cleanup: true, language: 'auto', silenceMs: 1500, sendWord: false, terms: [], speak: { enabled: false, model: 'antalia', speed: 1, studioDir: '' } },
   // Dilim 0 olcumunde en hizli gecen ucretsiz model; listede yoksa kullanici secer.
   orchestration: { enabled: false, maxConcurrent: 2, timeoutMinutes: 10, claudeThreshold: 70, targets: { opencode: { enabled: true, model: 'opencode/deepseek-v4.1-flash-free' } } },
   widgetX: null,

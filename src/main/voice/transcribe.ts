@@ -24,6 +24,10 @@ export interface TranscribeRequest {
   cleanup: boolean
   language: VoiceLanguage
   context: VoiceContext
+  /** Names and terms to spell exactly like this. */
+  terms?: string[]
+  /** Keep a closing "gönder" / "send" / "enter": the renderer turns it into Enter. */
+  sendWord?: boolean
   url?: string
   signal?: AbortSignal
 }
@@ -34,7 +38,7 @@ const LANGUAGE_HINT: Record<VoiceLanguage, string> = {
   en: 'The speaker speaks English.'
 }
 
-export function systemPrompt(cleanup: boolean, language: VoiceLanguage, context: VoiceContext): string {
+export function systemPrompt(cleanup: boolean, language: VoiceLanguage, context: VoiceContext, terms: string[] = [], sendWord = false): string {
   const target = context.kind === 'agent'
     ? `The text is typed into the input box of the coding agent ${context.name}, so it is usually a request or an instruction.`
     : `The text is typed at a ${context.name} prompt, so it is often a command; write commands, flags and paths exactly as a developer would type them.`
@@ -46,13 +50,15 @@ export function systemPrompt(cleanup: boolean, language: VoiceLanguage, context:
     LANGUAGE_HINT[language],
     target,
     edit,
+    ...(terms.length ? [`When these names or terms are spoken, write them exactly like this: ${terms.join(', ')}.`] : []),
+    ...(sendWord ? ['If the speaker ends with the word "gönder", "send" or "enter", keep that word as the last word.'] : []),
     'Reply with the final text only: no quotes, no explanations, no markdown. If there is no speech, reply with nothing.'
   ].join(' ')
 }
 
-export function voiceMessages(request: Pick<TranscribeRequest, 'wav' | 'cleanup' | 'language' | 'context'>): ChatMessage[] {
+export function voiceMessages(request: Pick<TranscribeRequest, 'wav' | 'cleanup' | 'language' | 'context' | 'terms' | 'sendWord'>): ChatMessage[] {
   return [
-    { role: 'system', content: systemPrompt(request.cleanup, request.language, request.context) },
+    { role: 'system', content: systemPrompt(request.cleanup, request.language, request.context, request.terms, request.sendWord) },
     {
       role: 'user',
       content: [

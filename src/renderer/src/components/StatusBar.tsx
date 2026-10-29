@@ -5,7 +5,7 @@ import type { GitStatus, ProjectInfo } from '../../../shared/ipc'
 import { agentForProfile, sshFromProfileId } from '../../../shared/profiles'
 import { remoteSessionName, sshTarget } from '../../../shared/sshArgs'
 import { useSettingsStore } from '../store/settingsStore'
-import { useTerminalStore } from '../store/terminalStore'
+import { broadcastTargetIds, useTerminalStore } from '../store/terminalStore'
 import { useCommandHistoryStore } from '../store/commandHistoryStore'
 import { useAgentSessionStore } from '../store/agentSessionStore'
 import { useTaskPaletteStore } from '../store/taskPaletteStore'
@@ -105,6 +105,7 @@ export function StatusBar(): React.JSX.Element {
   const tabs = useTerminalStore((s) => s.tabs)
   const activeTabId = useTerminalStore((s) => s.activeTabId)
   const broadcastInput = useTerminalStore((s) => s.broadcastInput)
+  const broadcastPanes = useTerminalStore((s) => broadcastTargetIds(s.activeTabId ?? '', s.splitTabIds, true).length)
   const settings = useSettingsStore((s) => s.settings)
   const uiMode = settings.uiMode
   const active = tabs.find((tab) => tab.id === activeTabId)
@@ -206,9 +207,11 @@ export function StatusBar(): React.JSX.Element {
         <button
           className="status-item status-broadcast"
           onClick={() => useTerminalStore.getState().toggleBroadcastInput()}
-          title="Input is sent to every split pane — click to turn off (Ctrl+Alt+B)"
+          title={broadcastPanes > 1
+            ? `Input is sent to the ${broadcastPanes} framed panes — click to turn off (Ctrl+Alt+B)`
+            : 'Broadcast is on but this tab is not in a split, so input goes only here — click to turn off (Ctrl+Alt+B)'}
         >
-          <Radio size={12} />BROADCAST
+          <Radio size={12} />{broadcastPanes > 1 ? `BROADCAST · ${broadcastPanes}` : 'BROADCAST · this tab only'}
         </button>
       )}
       {ssh && (

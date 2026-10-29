@@ -3,6 +3,8 @@
  * types a space, a press held past `holdMs` records. While Space is down and
  * another key comes, the space is typed first and that key goes through, so
  * fast typing never starts a recording (docs/voice-input.md).
+ * Ctrl+Shift+Space starts a hands-free (locked) recording instead; Space or
+ * Ctrl+Shift+Space stops it, silence can stop it from outside.
  */
 
 export interface HoldKeyEvent {
@@ -21,8 +23,9 @@ export interface HoldToTalkOptions {
   enabled(): boolean
   /** Short press: type the space that was held back. */
   onTap(): void
-  onStart(): void
-  /** Space released while recording: transcribe. */
+  /** `locked`: hands-free, no key is held. */
+  onStart(locked: boolean): void
+  /** Space released while recording (or pressed while locked): transcribe. */
   onStop(): void
   /** Escape while recording, or focus lost. */
   onCancel(): void
@@ -30,7 +33,7 @@ export interface HoldToTalkOptions {
   clearTimer(handle: unknown): void
 }
 
-type State = 'idle' | 'pressed' | 'recording' | 'cancelled'
+type State = 'idle' | 'pressed' | 'recording' | 'locked' | 'cancelled'
 
 export class HoldToTalk {
   private state: State = 'idle'
@@ -39,15 +42,21 @@ export class HoldToTalk {
   constructor(private readonly options: HoldToTalkOptions) {}
 
   get recording(): boolean {
-    return this.state === 'recording'
+    return this.state === 'recording' || this.state === 'locked'
   }
 
   /** Returns true when the event was consumed and must not reach the terminal. */
   handle(event: HoldKeyEvent): boolean {
     const isSpace = event.key === ' '
     const plain = !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey
+    const lockKey = isSpace && event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey
     switch (this.state) {
       case 'idle':
+        if (lockKey && event.type === 'keydown' && !event.repeat && this.options.enabled()) {
+          this.state = 'locked'
+          this.options.onStart(true)
+          return true
+        }
         if (event.type !== 'keydown' || !isSpace || !plain || event.repeat || event.isComposing || !this.options.enabled()) return false
         this.state = 'pressed'
         this.timer = this.options.setTimer(() => this.begin(), this.options.holdMs())
@@ -77,6 +86,17 @@ export class HoldToTalk {
           this.options.onCancel()
         }
         return true // nothing else reaches the terminal while recording
+      case 'locked':
+        if (event.type !== 'keydown' || event.repeat) return true
+        if (isSpace) {
+          // The keyup of this press then arrives in idle and is ignored.
+          this.state = 'idle'
+          this.options.onStop()
+        } else if (event.key === 'Escape') {
+          this.state = 'idle'
+          this.options.onCancel()
+        }
+        return true
       case 'cancelled':
         if (isSpace && event.type === 'keyup') this.state = 'idle'
         return isSpace || event.key === 'Escape'
@@ -86,23 +106,24 @@ export class HoldToTalk {
   /** Window or terminal lost focus: no keyup will come. */
   blur(): void {
     if (this.state === 'pressed') this.reset()
-    if (this.state === 'recording') {
+    if (this.state === 'recording' || this.state === 'locked') {
       this.state = 'idle'
       this.options.onCancel()
     }
     if (this.state === 'cancelled') this.state = 'idle'
   }
 
-  /** Recording stopped from outside (time limit). */
+  /** Recording stopped from outside (time limit, silence). */
   stopFromOutside(): void {
-    if (this.state === 'recording') this.state = 'cancelled'
+    if (this.state === 'recording') this.state = 'cancelled' // Space is still held
+    if (this.state === 'locked') this.state = 'idle'
   }
 
   private begin(): void {
     this.timer = null
     if (this.state !== 'pressed') return
     this.state = 'recording'
-    this.options.onStart()
+    this.options.onStart(false)
   }
 
   private reset(): void {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.30.0 - 2026-10-29
+
+- Hands-free voice input: press Ctrl+Shift+Space once and just talk, no key to hold. It stops by itself when you pause (1 to 4 seconds, or only with Space) and types the text. Hold-to-talk with Space works as before.
+- Say "send" to submit: in Claude Code, Codex and OpenCode, end what you say with "gönder", "send" or "enter" and Enter is pressed after the text. Off by default and never at a shell prompt.
+- Terms: list the names and words you use (Settings > Voice) and dictation spells them exactly like that.
+- Broadcast: every split pane that receives your typing gets a red frame, and the badge shows how many panes get it, or "this tab only" when the open tab is not in the split. Split panes connected over SSH show their host in the corner.
+
 ## 1.29.1 - 2026-10-29
 
 - Agent IDE: Tasks says what to do when the open terminal is not in a repository, instead of showing the raw git error. Automations now opens the editor on the automation you picked, whether you pressed Edit or started from a template.

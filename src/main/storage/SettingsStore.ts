@@ -70,11 +70,17 @@ function normalizeVoiceSettings(value: unknown): AppSettings['voice'] {
   const model = typeof input.model === 'string' && input.model.trim() ? input.model.trim().slice(0, 200) : defaults.model
   const holdMs = typeof input.holdMs === 'number' && Number.isFinite(input.holdMs) ? Math.min(1000, Math.max(250, Math.round(input.holdMs))) : defaults.holdMs
   const language = input.language === 'tr' || input.language === 'en' ? input.language : 'auto'
+  const silenceMs = typeof input.silenceMs === 'number' && Number.isFinite(input.silenceMs)
+    ? (input.silenceMs <= 0 ? 0 : Math.min(5000, Math.max(800, Math.round(input.silenceMs)))) : defaults.silenceMs
+  const terms = Array.isArray(input.terms)
+    ? [...new Set(input.terms.filter((t): t is string => typeof t === 'string').map((t) => t.trim().slice(0, 60)).filter(Boolean))].slice(0, 50)
+    : []
   const speak: Partial<AppSettings['voice']['speak']> = input.speak && typeof input.speak === 'object' ? input.speak : {}
   const speed = typeof speak.speed === 'number' && Number.isFinite(speak.speed) ? Math.min(2, Math.max(0.5, speak.speed)) : 1
   const studioDir = typeof speak.studioDir === 'string' ? speak.studioDir.trim().slice(0, 500) : ''
   return {
     enabled: input.enabled === true, model, holdMs, cleanup: input.cleanup !== false, language,
+    silenceMs, sendWord: input.sendWord === true, terms,
     speak: { enabled: speak.enabled === true, model: speak.model === 'ema' ? 'ema' : 'antalia', speed, studioDir }
   }
 }
