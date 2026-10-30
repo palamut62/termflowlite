@@ -6,7 +6,7 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   /* ------------------------------------------------------------------ *
-   * Latest release and stars (falls back to the static 1.30.1 links)
+   * Latest release and stars (falls back to the static 1.30.2 links)
    * ------------------------------------------------------------------ */
   const ASSET_PATTERNS = {
     exe: /-x64\.exe$/,
@@ -17,7 +17,7 @@
 
   const { t } = window.tflI18n
   // The release and star facts are kept here so a language switch can rewrite them.
-  const facts = { version: '1.30.1', date: null, stars: '' }
+  const facts = { version: '1.30.2', date: null, stars: '' }
 
   function showFacts() {
     const version = t('version', { v: facts.version })
