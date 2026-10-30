@@ -101,7 +101,8 @@ export async function enableElevation(pin: string, executable = process.execPath
     `$dir = ${psQuote(dir)}`,
     'New-Item -ItemType Directory -Force -Path $dir | Out-Null',
     // Administrators + SYSTEM only: the user's own unelevated programs cannot read the hash.
-    "& icacls.exe $dir /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null",
+    // /T: klasorde onceden olusmus elevation.json varsa onun ACL'i de kisitlanir.
+    "& icacls.exe $dir /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' /T | Out-Null",
     'if ($LASTEXITCODE -ne 0) { exit 2 }',
     `[IO.File]::WriteAllText((Join-Path $dir 'elevation.json'), ${psQuote(JSON.stringify(hashPin(pin)))})`,
     `$action = New-ScheduledTaskAction -Execute ${psQuote(executable)} -Argument ${psQuote(ELEVATED_HOST_FLAG)}`,

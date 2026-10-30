@@ -79,4 +79,14 @@ describe('media', () => {
     expect((await handleMediaRequest(new Request(mediaUrl(join(dir, 'notes.txt'))))).status).toBe(403)
     expect((await handleMediaRequest(new Request('termflow-media://evil/x'))).status).toBe(404)
   })
+
+  it('answers with an empty body when a granted file is truncated', async () => {
+    const clip = join(dir, 'live.mp4')
+    writeFileSync(clip, '0123456789')
+    await inspectMedia(clip)
+    writeFileSync(clip, '') // the stream would be asked for bytes 0..-1
+    const res = await handleMediaRequest(new Request(mediaUrl(clip)))
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('')
+  })
 })

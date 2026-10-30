@@ -57,12 +57,10 @@ export function sessionIdFromFile(agent: 'claude' | 'codex', path: string): stri
   return uuid ? uuid[1] : name
 }
 
-const opencodeExecutable = (): string => process.platform === 'win32' ? 'opencode.cmd' : 'opencode'
-
 export async function openCodeSources(cutoff: number): Promise<SessionSource[]> {
   let parsed: unknown
   try {
-    parsed = JSON.parse(await runCli(opencodeExecutable(), ['session', 'list', '--format', 'json', '--max-count', '200']) || '[]')
+    parsed = JSON.parse(await runCli('opencode', ['session', 'list', '--format', 'json', '--max-count', '200']) || '[]')
   } catch {
     return []
   }
@@ -88,7 +86,7 @@ export async function listSources(cutoff: number, roots: SourceRoots = defaultRo
 
 export async function readDigest(source: SessionSource): Promise<SessionDigest> {
   if (source.agent === 'opencode') {
-    const stdout = await runCli(opencodeExecutable(), ['export', source.id], 16 * 1024 * 1024)
+    const stdout = await runCli('opencode', ['export', source.id], 16 * 1024 * 1024)
     const digest = digestFromOpenCodeExport(JSON.parse(stdout))
     digest.id ||= source.id
     return digest

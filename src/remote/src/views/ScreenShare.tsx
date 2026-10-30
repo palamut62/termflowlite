@@ -131,10 +131,12 @@ export function ScreenShare(): React.JSX.Element {
       if (rfb.current) rfb.current.scaleViewport = true
     }
     // Landscape is the shape of a desktop: give it the whole phone by itself.
+    // The orientation is read from the window, never from the visual viewport:
+    // an open keyboard makes the viewport wider than tall while the phone is
+    // still upright, which used to drop the bars in portrait.
     const follow = (): void => {
       rescale()
-      const landscape = (vv?.width ?? window.innerWidth) > (vv?.height ?? window.innerHeight)
-      setImmersive(landscape)
+      setImmersive(window.innerWidth > window.innerHeight)
     }
     follow()
     vv?.addEventListener('resize', follow)

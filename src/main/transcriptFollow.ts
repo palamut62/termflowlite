@@ -5,6 +5,7 @@ import { StringDecoder } from 'string_decoder'
 // `out/mcp/follow-transcript.cjs` olarak paketlenir ve ELECTRON_RUN_AS_NODE=1 ile calisir.
 
 const INITIAL_LINES = 200
+const MAX_CHUNK = 1024 * 1024
 
 function clip(text: string, max: number): string {
   const t = text.replace(/\s+/g, ' ').trim()
@@ -51,15 +52,21 @@ export function followFile(file: string, write: (text: string) => void, pollMs =
     try { size = statSync(file).size } catch { return }
     if (size < pos) { pos = 0; rest = '' } // dosya bastan yazildi
     if (size === pos) return
-    const buf = Buffer.alloc(size - pos)
+    // Tek seferde en fazla MAX_CHUNK: uzun bir dokum tamamen belege alinmasin.
+    // Kalani bir sonraki yoklamada okunur.
+    const buf = Buffer.alloc(Math.min(size - pos, MAX_CHUNK))
     const fd = openSync(file, 'r')
-    try { readSync(fd, buf, 0, buf.length, pos) } finally { closeSync(fd) }
-    pos = size
-    const parts = (rest + decoder.write(buf)).split('\n')
+    let count = 0
+    try { count = readSync(fd, buf, 0, buf.length, pos) } finally { closeSync(fd) }
+    if (count === 0) return
+    pos += count
+    const parts = (rest + decoder.write(buf.subarray(0, count))).split('\n')
     rest = parts.pop() ?? ''
     emit(parts.flatMap(formatTranscriptLine))
   }
   const send = (lines: string[]): void => { if (lines.length) write(`${lines.join('\n')}\n`) }
+  // Ilk okuma dosyanin sonundan baslar; yarim kalan ilk satir JSON olmadigi icin elenir.
+  try { pos = Math.max(0, statSync(file).size - MAX_CHUNK) } catch { /* dosya yoksa pump zaten cikar */ }
   pump((lines) => send(lines.slice(-INITIAL_LINES)))
   const timer = setInterval(() => pump(send), pollMs)
   return () => clearInterval(timer)

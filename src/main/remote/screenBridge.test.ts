@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events'
 import { createServer, type Server, type Socket } from 'net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ScreenTickets, bridgeScreen } from './screenBridge'
@@ -70,6 +71,27 @@ describe('bridgeScreen', () => {
     phone.fire('message', Buffer.from('rfb'), false)
     await new Promise((resolve) => setTimeout(resolve, 100))
     expect(phone.sent).toHaveLength(0)
+  })
+
+  it('pauses the screen stream while the phone socket is backed up', async () => {
+    const phone = fakeSocket()
+    let buffered = 5 * 1024 * 1024
+    Object.defineProperty(phone.ws, 'bufferedAmount', { get: () => buffered })
+    const calls: string[] = []
+    const tcp = Object.assign(new EventEmitter(), {
+      setNoDelay: () => undefined,
+      destroy: () => undefined,
+      write: () => true,
+      pause: () => { calls.push('pause') },
+      resume: () => { calls.push('resume') }
+    })
+    bridgeScreen(phone.ws, port, (() => tcp) as unknown as Parameters<typeof bridgeScreen>[2])
+    tcp.emit('data', Buffer.from('frame'))
+    expect(calls).toEqual(['pause'])
+    buffered = 0
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    expect(calls).toEqual(['pause', 'resume'])
+    tcp.emit('close')
   })
 
   it('closes the phone socket when no screen server answers', async () => {

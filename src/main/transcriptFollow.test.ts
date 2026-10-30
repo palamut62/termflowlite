@@ -51,4 +51,20 @@ describe('followFile', () => {
       expect(out.join('')).toContain('SAID m250')
     } finally { stop() }
   })
+
+  it('reads only the tail of a transcript larger than the chunk limit', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'follow-big-')), 'a.jsonl')
+    // ~2 MB: over the 1 MB read limit, so the first read has to start near the end.
+    const entry = (n: number): string => line('assistant', [{ type: 'text', text: `m${n}`.padEnd(2000, 'x') }])
+    writeFileSync(file, Array.from({ length: 1000 }, (_, i) => entry(i)).join('\n') + '\n')
+    const out: string[] = []
+    const stop = followFile(file, (t) => out.push(t), 20)
+    try {
+      expect(out.join('')).toContain('SAID m999')
+      expect(out.join('')).not.toContain('SAID m0x')
+      appendFileSync(file, entry(1000) + '\n')
+      await new Promise((r) => setTimeout(r, 80))
+      expect(out.join('')).toContain('SAID m1000')
+    } finally { stop() }
+  })
 })

@@ -140,6 +140,8 @@ export async function handleMediaRequest(request: Request): Promise<Response> {
   }
   const type = MIME[extname(path).toLowerCase()] ?? 'application/octet-stream'
   const headers = { 'Content-Type': type, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-store' }
+  // Bos dosyada createReadStream({ end: -1 }) RangeError atar; bos govde don.
+  if (size === 0) return new Response(null, { status: 200, headers: { ...headers, 'Content-Length': '0' } })
   const range = parseRange(request.headers.get('range'), size)
   if (request.headers.get('range') && !range) {
     return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${size}` } })

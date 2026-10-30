@@ -102,8 +102,8 @@ export async function listJsonlSessions(agent: 'claude' | 'codex', limit: number
 
 export async function listOpenCodeSessions(limit: number): Promise<AgentSession[]> {
   try {
-    const executable = process.platform === 'win32' ? 'opencode.cmd' : 'opencode'
-    const stdout = await runCli(executable, ['session', 'list', '--format', 'json', '--max-count', String(limit)])
+    // Plain name: executablePath tries .exe/.cmd/.bat, so Scoop and WinGet installs work too.
+    const stdout = await runCli('opencode', ['session', 'list', '--format', 'json', '--max-count', String(limit)])
     const parsed = JSON.parse(stdout || '[]') as unknown
     if (!Array.isArray(parsed)) return []
     return parsed.flatMap((value): AgentSession[] => {
@@ -212,8 +212,7 @@ export function handoverPromptFromOpenCodeExport(value: unknown): string {
 export async function buildAgentHandoverPrompt(session: AgentSessionRef): Promise<string> {
   if (session.agent === 'opencode') {
     try {
-      const executable = process.platform === 'win32' ? 'opencode.cmd' : 'opencode'
-      const stdout = await runCli(executable, ['export', session.id], 4 * 1024 * 1024)
+      const stdout = await runCli('opencode', ['export', session.id], 4 * 1024 * 1024)
       return handoverPromptFromOpenCodeExport(JSON.parse(stdout))
     } catch {
       throw new Error('OpenCode session export failed. Check the CLI in Profile Health before retrying.')

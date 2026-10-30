@@ -19,10 +19,12 @@ if [[ -z $TERMFLOW_SHELL_INTEGRATION_DONE ]]; then
   __termflow_precmd() {
     local exit_code=$?
     if (( __termflow_in_command )); then
-      print -n "\e]133;D;${exit_code}\a"
+      print -rn -- $'\e]133;D;'"${exit_code}"$'\a'
     fi
     __termflow_in_command=0
-    print -n "\e]7;file://${HOST}${PWD}\a"
+    # -r: the path is printed as it is, with no escape expansion. The percent
+    # signs are encoded because TermFlow reads the payload as a URI.
+    print -rn -- $'\e]7;file://'"${HOST}${PWD//\%/%25}"$'\a'
     # Prompt themes may rebuild PS1 every time: re-apply the markers.
     if [[ $PS1 != *'133;A'* ]]; then
       PS1=$'%{\e]133;A\a%}'"$PS1"$'%{\e]133;B\a%}'
@@ -32,7 +34,7 @@ if [[ -z $TERMFLOW_SHELL_INTEGRATION_DONE ]]; then
 
   __termflow_preexec() {
     __termflow_in_command=1
-    print -n "\e]133;C\a"
+    print -rn -- $'\e]133;C\a'
   }
 
   # Ours first, so $? is read before any other hook clobbers it.

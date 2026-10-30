@@ -96,6 +96,7 @@ function profileFromDraft(d: ProfileDraft, id: string, icon?: string): TerminalP
 export function ProfilesPage(): React.JSX.Element {
   const settings = useRemote((s) => s.settings)
   const update = useRemote((s) => s.updateSettings)
+  const toast = useRemote((s) => s.toast)
   const [editing, setEditing] = useState<{ id: string | null; draft: ProfileDraft } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   if (!settings) return <></>
@@ -109,7 +110,10 @@ export function ProfilesPage(): React.JSX.Element {
     if (!editing || !valid) return
     const id = editing.id ?? newId()
     const existing = settings.profiles.find((p) => p.id === id)
-    const payload = profileFromDraft(editing.draft, id, existing?.icon)
+    let payload: TerminalProfile
+    // An unclosed quote in the arguments field throws; without this the save
+    // button would do nothing at all (the desktop editor shows the same text).
+    try { payload = profileFromDraft(editing.draft, id, existing?.icon) } catch (error) { return toast(errorText(error), 'error') }
     const profiles = existing ? settings.profiles.map((p) => (p.id === id ? payload : p)) : [...settings.profiles, payload]
     if (await update({ profiles })) setEditing(null)
   }

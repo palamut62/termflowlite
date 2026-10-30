@@ -41,7 +41,9 @@ if [ -z "$TERMFLOW_SHELL_INTEGRATION_DONE" ]; then
         *) return 0 ;;
       esac
     fi
-    printf '\033]7;file://%s%s\007' "${HOSTNAME:-localhost}" "$path"
+    # TermFlow reads the payload as a URI: a bare % in a folder name would make
+    # decoding fail and the cwd would stop being tracked.
+    printf '\033]7;file://%s%s\007' "${HOSTNAME:-localhost}" "${path//%/%25}"
   }
 
   __termflow_precmd() {

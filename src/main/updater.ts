@@ -36,7 +36,7 @@ function unsupportedReason(): UpdateStatus | null {
     return { state: 'idle', error: 'Updates only work in the installed version.' }
   }
   if (process.platform === 'linux' && !process.env.APPIMAGE) {
-    return { state: 'idle', error: 'Bu Linux paketi (.deb) paket yöneticisiyle güncellenir.' }
+    return { state: 'idle', error: 'This Linux package (.deb) is updated through your package manager.' }
   }
   return null
 }

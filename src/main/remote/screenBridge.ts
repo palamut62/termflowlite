@@ -10,6 +10,9 @@ import { connect, type Socket } from 'net'
  */
 const TICKET_TTL_MS = 15_000
 const MAX_TICKETS = 20
+/** WebSocket kuyrugu bu sinirin uzerine cikarsa VNC akisi duraklatilir. */
+const STALL_BYTES = 4 * 1024 * 1024
+const DRAIN_POLL_MS = 50
 
 /**
  * One-time tickets for the screen WebSocket. A browser cannot put the device
@@ -41,6 +44,8 @@ export class ScreenTickets {
 /** The two ends of the pipe, as little of them as this module needs. */
 export interface ScreenSocket {
   send(data: Buffer): void
+  /** Bytes queued on the socket; `ws`'s own property, used for backpressure. */
+  readonly bufferedAmount?: number
   close(code?: number, reason?: string): void
   on(event: 'message', listener: (data: Buffer, isBinary: boolean) => void): void
   on(event: 'close' | 'error', listener: () => void): void
@@ -54,14 +59,32 @@ export interface ScreenSocket {
 export function bridgeScreen(ws: ScreenSocket, port: number, dial: typeof connect = connect): Socket {
   const tcp = dial({ host: '127.0.0.1', port })
   let closed = false
+  let drainTimer: ReturnType<typeof setInterval> | null = null
+  const stopDraining = (): void => {
+    if (drainTimer) clearInterval(drainTimer)
+    drainTimer = null
+  }
   const shutdown = (code?: number, reason?: string): void => {
     if (closed) return
     closed = true
+    stopDraining()
     tcp.destroy()
     ws.close(code, reason)
   }
   tcp.on('connect', () => tcp.setNoDelay(true))
-  tcp.on('data', (chunk: Buffer) => ws.send(chunk))
+  tcp.on('data', (chunk: Buffer) => {
+    ws.send(chunk)
+    // Yavas baglantida VNC ekran guncellemeleri WebSocket kuyrugunda birikir;
+    // kuyruk sisince akisi durdur, bosalinca devam et (yoksa bellek sinirsiz buyur).
+    if (drainTimer || (ws.bufferedAmount ?? 0) <= STALL_BYTES) return
+    tcp.pause()
+    drainTimer = setInterval(() => {
+      if (closed) return stopDraining()
+      if ((ws.bufferedAmount ?? 0) > STALL_BYTES) return
+      stopDraining()
+      tcp.resume()
+    }, DRAIN_POLL_MS)
+  })
   tcp.on('error', () => shutdown(1011, 'The screen server could not be reached.'))
   tcp.on('close', () => shutdown())
   ws.on('message', (data, isBinary) => {
