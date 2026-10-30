@@ -149,8 +149,6 @@
     'more.prsText': 'Bir pull request\'i mevcut gh oturumunla, herhangi bir ajanla kendi worktree\'sinde aç.',
     'more.widget': 'Widget görünümü',
     'more.widgetText': "Köşede küçük bir durum widget'ına küçült. Oturumlar çalışmaya devam eder; tek tıkla tam pencere geri gelir.",
-    'more.chars': 'Ajan karakterleri',
-    'more.charsText': 'ASCII ya da piksel sanatıyla, on ifadeli üç karakter. Gizli paneller hiçbir kaynak harcamaz, hareketi azaltma ayarı onları sabit tutar.',
     'more.inbox': 'Ajan gelen kutusu',
     'more.inboxText': 'Tüm sekmelerdeki onayların, araç çağrılarının, tamamlanan ve başarısız işlerin hassas bilgileri gizlenmiş zaman çizelgesi.',
     'more.startup': 'Başlangıçta aç',
