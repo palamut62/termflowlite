@@ -65,6 +65,7 @@ describe('TaskManager', () => {
     const done = new Promise<DelegatedTaskResult>((r) => { resolve = r })
     const base: DelegatedTaskResult = { id: input.id, agent: input.agent, status: 'done', branch: `deleg/${input.id}`, lastMessage: 'ok', exitCode: 0, outputTail: '', durationMs: 1, diffStat: '1 file', changedFiles: ['a.txt'], worktreePath: join(dir, input.id), commit: 'abc' }
     const cancel = vi.fn(() => resolve({ ...base, status: 'cancelled', error: 'Cancelled' }))
+    input.onWorktree?.(join(dir, input.id)) // gercek runner da worktree'yi hemen bildirir
     pending.push({ input, finish: (patch = {}) => resolve({ ...base, ...patch }), cancel })
     return { done, cancel }
   }
@@ -157,6 +158,32 @@ describe('TaskManager', () => {
     expect(discard).toHaveBeenCalledWith(REPO, { worktreePath: join(dir, 't1'), branch: 'deleg/t1' })
     expect(m.list()).toEqual([])
     expect(await m.discard('t1')).toMatchObject({ ok: false })
+  })
+
+  it('records the worktree while the task runs, so a crash does not orphan it', async () => {
+    const discard = vi.fn(async () => ({ ok: true as const }))
+    const file = join(dir, 'tasks.json')
+    const m = manager({ discard, file })
+    await m.submit({ target: 'cx', prompt: 'a', cwd: REPO })
+    expect(m.get('t1')).toMatchObject({ status: 'running', worktreePath: join(dir, 't1') })
+    // Yeniden acilis: gorev 'failed' olur ama yol kayitli oldugu icin Discard silebilir.
+    const reopened = manager({ discard, file, newId: () => 'tx' })
+    expect(reopened.get('t1')).toMatchObject({ status: 'failed', worktreePath: join(dir, 't1') })
+    expect(await reopened.discard('t1')).toEqual({ ok: true })
+    expect(discard).toHaveBeenCalledWith(REPO, { worktreePath: join(dir, 't1'), branch: 'deleg/t1' })
+  })
+
+  it('removes the worktree of a record that falls out of the list', async () => {
+    const discard = vi.fn(async () => ({ ok: true as const }))
+    const m = manager({ discard })
+    for (let i = 0; i < 51; i++) {
+      await m.submit({ target: 'cx', prompt: 'a', cwd: REPO })
+      pending[i].finish()
+      await tick()
+    }
+    expect(m.list()).toHaveLength(50)
+    expect(m.get('t1')).toBeUndefined()
+    expect(discard).toHaveBeenCalledWith(REPO, { worktreePath: join(dir, 't1'), branch: 'deleg/t1' })
   })
 
   it('reports a runner that throws as a failed task', async () => {

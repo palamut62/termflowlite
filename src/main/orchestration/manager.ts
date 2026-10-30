@@ -236,7 +236,9 @@ export class TaskManager {
     try {
       run = this.run({
         id: task.id, repoRoot: task.repoRoot, agent: target.agent, model: target.model, prompt: task.prompt,
-        checkCommand: task.checkCommand, timeoutMs: target.timeoutS * 1000, env: target.env
+        checkCommand: task.checkCommand, timeoutMs: target.timeoutS * 1000, env: target.env,
+        // Yol sonucu beklemeden yazilir: uygulama gorev sirasinda kapanirsa Discard yine de silebilsin.
+        onWorktree: (worktreePath) => { task.worktreePath = worktreePath; this.changed() }
       })
     } catch (error) {
       this.finish(task.id, { status: 'failed', error: error instanceof Error ? error.message : String(error) })
@@ -268,7 +270,11 @@ export class TaskManager {
     while (this.tasks.length > MAX_TASKS) {
       const index = this.tasks.map((item) => FINISHED.has(item.status)).lastIndexOf(true)
       if (index < 0) break
-      this.tasks.splice(index, 1)
+      const [dropped] = this.tasks.splice(index, 1)
+      // Kayit listeden dusuyorsa Discard'i cagiracak kimse kalmaz: worktree'yi simdi sil.
+      if (dropped?.worktreePath) {
+        void this.discardImpl(dropped.repoRoot, { worktreePath: dropped.worktreePath, branch: dropped.branch }).catch(() => undefined)
+      }
     }
   }
 

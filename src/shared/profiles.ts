@@ -55,11 +55,15 @@ export function agentForProfile(settings: Pick<AppSettings, 'providerProfiles' |
 /** Lazily built: BUILTIN_PROFILES is declared further down in this module. */
 let agentExecutables: Set<string> | null = null
 
+export function isAgentCliName(name: unknown): boolean {
+  agentExecutables ??= new Set(BUILTIN_PROFILES.map(profileExecutable).filter((item) => item !== 'ollama'))
+  return typeof name === 'string' && agentExecutables.has(name)
+}
+
 export function agentCliForCommand(command: string | undefined): string | null {
   if (!command?.trim()) return null
   const executable = profileExecutable({ command, startupCommand: undefined })
-  agentExecutables ??= new Set(BUILTIN_PROFILES.map(profileExecutable).filter((name) => name !== 'ollama'))
-  return agentExecutables.has(executable) ? executable : null
+  return isAgentCliName(executable) ? executable : null
 }
 
 export function agentCliForProfile(settings: Pick<AppSettings, 'providerProfiles' | 'profiles'>, profileId: string): string | null {

@@ -13,12 +13,25 @@ function event(id: string): AgentEvent {
 }
 
 describe('AgentEventStore', () => {
-  it('persists events as JSONL and reloads them in order', () => {
+  it('persists events as JSONL and reloads them in order', async () => {
     root = mkdtempSync(join(tmpdir(), 'termflow-agent-events-'))
     const store = new AgentEventStore(root)
     store.append(event('one')); store.append(event('two'))
+    // Yazim asenkron: kuyruktakiler list()'te gorunur, diskte flush'tan sonra.
+    expect(store.list().map((item) => item.id)).toEqual(['one', 'two'])
+    await store.flush()
     expect(store.list().map((item) => item.id)).toEqual(['one', 'two'])
     expect(readFileSync(join(root, 'agent-events.jsonl'), 'utf8')).not.toContain('undefined')
+    expect(new AgentEventStore(root).list().map((item) => item.id)).toEqual(['one', 'two'])
+  })
+
+  it('keeps events from every agent CLI, not only the three with hooks', async () => {
+    root = mkdtempSync(join(tmpdir(), 'termflow-agent-events-'))
+    const store = new AgentEventStore(root)
+    store.append({ ...event('gem'), agent: 'gemini' })
+    store.append({ ...event('nope'), agent: 'rm -rf' })
+    await store.flush()
+    expect(new AgentEventStore(root).list().map((item) => item.id)).toEqual(['gem'])
   })
 
   it('keeps valid history when the final JSONL line is torn', () => {
@@ -29,12 +42,13 @@ describe('AgentEventStore', () => {
 
   // Eşik, trim sonrası kalan boyutun (2000 satır × ~130B ≈ 260KB) ÜSTÜNDE
   // olmalı; altında kalırsa her append trim'i yeniden tetikler (O(n²) yazım).
-  it('keeps the on-disk file bounded, keeping the newest events', () => {
+  it('keeps the on-disk file bounded, keeping the newest events', async () => {
     root = mkdtempSync(join(tmpdir(), 'termflow-agent-events-'))
     const threshold = 400_000
     const store = new AgentEventStore(root, threshold)
     const total = 4000
     for (let i = 0; i < total; i++) store.append(event(`event-${i}`))
+    await store.flush()
 
     const listed = store.list(5000)
     expect(listed.length).toBeLessThanOrEqual(2000)

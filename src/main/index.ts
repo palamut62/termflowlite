@@ -98,6 +98,7 @@ let settingsStore: SettingsStore | null = null
 /** Compact widget view of the main window; created once settings are loaded. */
 let widget: WidgetController | null = null
 let sessionStore: SessionStore | null = null
+let agentEventStore: AgentEventStore | null = null
 let stopMemoryScheduler: (() => void) | null = null
 let manager: TerminalManager | null = null
 let remoteController: RemoteController | null = null
@@ -524,7 +525,8 @@ app.whenReady().then(() => {
   registerAgentSessionsIpc(agentSessionOwnership, follower)
   registerSessionIpc(sessionStore)
   registerUpdaterIpc()
-  registerAgentEventsIpc(new AgentEventStore(app.getPath('userData')))
+  agentEventStore = new AgentEventStore(app.getPath('userData'))
+  registerAgentEventsIpc(agentEventStore)
   initUpdater(
     () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null),
     () => (settingsStore ? settingsStore.get() : DEFAULT_SETTINGS)
@@ -675,6 +677,7 @@ app.on('before-quit', () => {
   isQuitting = true
   settingsStore?.flush() // write any debounced settings mutations
   sessionStore?.flush() // write the debounced tab/split layout
+  agentEventStore?.flushSync() // agent events are written in the background
   manager?.shutdown() // kill every live PTY
   unwatchAllMedia()
   stopMemoryScheduler?.()

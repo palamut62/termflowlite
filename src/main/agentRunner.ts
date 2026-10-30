@@ -153,6 +153,8 @@ export interface DelegatedTaskInput {
   timeoutMs?: number
   /** Ajana eklenecek ortam (saglayici profilinin base URL / model / anahtari). Sonuca yazilmaz. */
   env?: Record<string, string>
+  /** Worktree olusur olusmaz cagrilir: kayit hemen diske yazilsin, surec coktugunde yetim kalmasin. */
+  onWorktree?: (path: string) => void
   /** Testler icin: ajan CLI'i yerine calisacak surec. */
   invocation?: { file: string; args: string[] }
 }
@@ -220,6 +222,7 @@ export function runDelegatedTask(input: DelegatedTaskInput): DelegatedTaskRun {
   const started = Date.now()
   const branch = taskBranch(input.id)
   let child: ReturnType<typeof spawn> | undefined
+  let checkRun: { cancel: () => void } | undefined
   let cancelled = false
   const base = { id: input.id, agent: input.agent, model: input.model, branch, lastMessage: '', exitCode: null, outputTail: '', diffStat: '', changedFiles: [] }
   const fail = (error: string, extra: Partial<DelegatedTaskResult> = {}): DelegatedTaskResult => ({ ...base, status: 'failed', error, durationMs: Date.now() - started, ...extra })
@@ -228,6 +231,7 @@ export function runDelegatedTask(input: DelegatedTaskInput): DelegatedTaskRun {
     const created = await createWorktree({ repoRoot: input.repoRoot, branch })
     if (!created.ok) return fail(created.error)
     const cwd = created.worktree.path
+    input.onWorktree?.(cwd)
     if (cancelled) return { ...fail('Cancelled', { worktreePath: cwd }), status: 'cancelled' }
 
     let invocation: { file: string; args: string[] }
@@ -277,7 +281,10 @@ export function runDelegatedTask(input: DelegatedTaskInput): DelegatedTaskRun {
     if (input.checkCommand?.trim()) {
       let output = ''
       const run = runSetupCommand(input.checkCommand, cwd, (text) => { if (output.length < OUTPUT_LIMIT) output += text })
+      checkRun = run
+      if (cancelled) run.cancel() // iptal ajan bittikten sonra geldiyse kontrol komutu da durur
       const result = await run.done
+      checkRun = undefined
       const check = { code: result.code, timedOut: result.timedOut, output: tailLines(output, CHECK_TAIL_LINES) }
       if (result.code !== 0) return fail('Check command failed', { ...withDiff, check })
       return { ...base, ...withDiff, status: 'done', durationMs: Date.now() - started, check }
@@ -290,6 +297,7 @@ export function runDelegatedTask(input: DelegatedTaskInput): DelegatedTaskRun {
     cancel: () => {
       cancelled = true
       if (child) killProcessTree(child)
+      checkRun?.cancel()
     }
   }
 }
