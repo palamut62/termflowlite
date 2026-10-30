@@ -1,5 +1,9 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.32.0 - 2026-10-30
+
+- Everything in TermFlow Lite 1.32.0: a freshly installed CLI starts without restarting the app, Restart moves an agent to the folder you picked without repeating your first prompt, Memory's "Run now" is never swallowed, Claude Code accounts are kept apart, and a notification for a closed tab no longer leaves the phone on a blank screen.
+
 ## 1.31.1 - 2026-10-30
 
 - Everything in TermFlow Lite 1.31.1: the Agent Inbox now keeps the entries of every agent across restarts, and they are written in the background so a busy agent does not make the window stutter.

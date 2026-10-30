@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.32.0 - 2026-10-30
+
+- A CLI you install while TermFlow is open starts right away. It used to be listed in Profiles but answer "CLI not found" until you restarted the app. A profile with its own PATH is searched there too.
+- Restart (and "Restart here" in another folder) starts the profile from scratch, so an agent really moves to the new folder and your first prompt is not sent a second time. Restarting an Administrator tab says it needs a fresh approval from your phone instead of killing the tab.
+- Memory: "Run now" is no longer swallowed when a scheduled pass is already running - it runs right after it. Clearing the memory or forgetting a project during a pass stays cleared; the pass no longer writes its results back.
+- Claude Code with more than one account: subagent lists, background task output and your own status line are read from the account the tab actually uses, not always from the default one.
+- On the phone, a notification for a tab that has since been closed shows a short message and keeps you on an open tab instead of a blank screen.
+- Administrator tabs: the PIN attempt counter is kept under a lock, so parallel tabs cannot overwrite each other's count.
+
 ## 1.31.1 - 2026-10-30
 
 - The Agent Inbox keeps what the other agents did. In 1.31.0 their entries were shown while the app was open but never saved, so they were gone after a restart.
