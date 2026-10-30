@@ -6,10 +6,11 @@
 export const EDITOR_SCHEMES = ['vscode', 'cursor', 'windsurf', 'vscode-insiders'] as const
 export type EditorScheme = (typeof EDITOR_SCHEMES)[number]
 
-export function editorFileUrl(scheme: EditorScheme, path: string, line: number, column?: number): string {
+/** `line` verilmezse konum eklenmez: klasörler satır numarasıyla açılamaz. */
+export function editorFileUrl(scheme: EditorScheme, path: string, line?: number, column?: number): string {
   const normalized = path.replace(/\\/g, '/')
   const withSlash = normalized.startsWith('/') ? normalized : `/${normalized}`
-  const position = `:${Math.max(1, Math.floor(line))}${column ? `:${Math.max(1, Math.floor(column))}` : ''}`
+  const position = line ? `:${Math.max(1, Math.floor(line))}${column ? `:${Math.max(1, Math.floor(column))}` : ''}` : ''
   return `${scheme}://file${encodeURI(withSlash).replace(/[?#]/g, encodeURIComponent)}${position}`
 }
 

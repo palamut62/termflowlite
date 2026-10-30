@@ -7,6 +7,10 @@ describe('editorLink', () => {
     expect(editorFileUrl('cursor', '/home/me/a.py', 3)).toBe('cursor://file/home/me/a.py:3')
   })
 
+  it('omits the position for folders', () => {
+    expect(editorFileUrl('vscode', 'C:\\Users\\me\\proj')).toBe('vscode://file/C:/Users/me/proj')
+  })
+
   it('escapes characters that would end the URL path', () => {
     expect(editorFileUrl('vscode', '/tmp/a#b?.ts', 1)).toBe('vscode://file/tmp/a%23b%3F.ts:1')
   })

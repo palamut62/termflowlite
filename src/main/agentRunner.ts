@@ -6,14 +6,15 @@ import { execFile, spawn } from 'child_process'
 import { readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { promisify } from 'util'
+import { DELEGATE_AGENT_KINDS, type DelegateAgentKind } from '../shared/types'
 import { cliInvocation } from './terminal/cli'
 import { createWorktree, removeWorktree } from './worktree'
 import { killProcessTree, runSetupCommand } from './worktreeSetup'
 
 const execFileAsync = promisify(execFile)
 
-export const DELEGATE_AGENTS = ['opencode', 'codex', 'grok', 'claude', 'agy', 'gemini', 'qwen', 'copilot', 'kimi', 'droid'] as const
-export type DelegateAgent = (typeof DELEGATE_AGENTS)[number]
+export const DELEGATE_AGENTS = DELEGATE_AGENT_KINDS
+export type DelegateAgent = DelegateAgentKind
 
 export const DEFAULT_TASK_TIMEOUT_MS = 10 * 60_000
 const OUTPUT_LIMIT = 2 * 1024 * 1024

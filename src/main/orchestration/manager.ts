@@ -6,11 +6,16 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { dirname, isAbsolute } from 'path'
 import { agentKindForCommand } from '../../shared/agentEvents'
 import type { GitRepoInfo } from '../../shared/ipc'
-import type { AppSettings, DelegateAgentKind, DelegatedTask, OrchestrationTarget } from '../../shared/types'
+import { DELEGATE_AGENT_KINDS, type AppSettings, type DelegateAgentKind, type DelegatedTask, type OrchestrationTarget } from '../../shared/types'
 import { discardTask, runDelegatedTask, type DelegatedTaskInput, type DelegatedTaskRun } from '../agentRunner'
 import { readRepoInfo } from '../worktree'
 
-const BUILTIN: readonly [DelegateAgentKind, string][] = [['opencode', 'OpenCode'], ['codex', 'Codex'], ['grok', 'Grok'], ['claude', 'Claude Code'], ['agy', 'Antigravity'], ['gemini', 'Gemini CLI'], ['qwen', 'Qwen Code'], ['copilot', 'GitHub Copilot CLI'], ['kimi', 'Kimi'], ['droid', 'Droid']]
+// Record oldugu icin DELEGATE_AGENT_KINDS'a yeni ajan eklenince etiketi unutmak derlemede hata verir.
+const BUILTIN_LABELS: Record<DelegateAgentKind, string> = {
+  opencode: 'OpenCode', codex: 'Codex', grok: 'Grok', claude: 'Claude Code', agy: 'Antigravity',
+  gemini: 'Gemini CLI', qwen: 'Qwen Code', copilot: 'GitHub Copilot CLI', kimi: 'Kimi', droid: 'Droid'
+}
+const BUILTIN: readonly [DelegateAgentKind, string][] = DELEGATE_AGENT_KINDS.map((agent) => [agent, BUILTIN_LABELS[agent]])
 const MAX_TASKS = 50
 const MAX_PROMPT = 20_000
 const MAX_CHECK = 2_000

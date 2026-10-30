@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
 import { normalizeAsciiBackgrounds } from '../../shared/asciiBackground'
-import { DEFAULT_SETTINGS, MEMORY_INTERVAL_MS, type AppSettings, type WorktreeMeta } from '../../shared/types'
+import { DEFAULT_SETTINGS, MEMORY_INTERVAL_MS, ORCHESTRATION_TARGET_ID, type AppSettings, type WorktreeMeta } from '../../shared/types'
 import { normalizeSetupSteps } from '../../shared/worktreeSetup'
 import { EDITION } from '../../shared/edition'
 import { PUSH_TOPIC, newPushTopic, normalizePushServer } from '../remote/phonePush'
@@ -20,7 +20,7 @@ function normalizeMemorySettings(value: unknown): AppSettings['memory'] {
 }
 const clampInt = (value: unknown, min: number, max: number, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : fallback
-const TARGET_ID = /^(opencode|codex|grok|claude|provider:[a-zA-Z0-9_-]{1,100})$/
+const TARGET_ID = ORCHESTRATION_TARGET_ID
 
 export function normalizeOrchestrationSettings(value: unknown): AppSettings['orchestration'] {
   const input = value && typeof value === 'object' ? value as Partial<AppSettings['orchestration']> : {}

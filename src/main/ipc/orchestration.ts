@@ -1,6 +1,6 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { IPC } from '../../shared/ipc'
-import type { AppSettings, MemoryAgent, MemoryConnection, OpenRouterModelList, OrchestrationStatus, OrchestrationTestResult } from '../../shared/types'
+import { ORCHESTRATION_TARGET_ID, type AppSettings, type MemoryAgent, type MemoryConnection, type OpenRouterModelList, type OrchestrationStatus, type OrchestrationTestResult } from '../../shared/types'
 import { connect, connectionStatus, disconnect, type ServerLaunch } from '../memory/connect'
 import { OrchestrationServer } from '../orchestration/apiServer'
 import { AGENTS_SERVER_NAME } from '../orchestration/mcpServer'
@@ -11,7 +11,7 @@ import type { OrchestrationService } from '../orchestration/service'
 
 const AGENTS: MemoryAgent[] = ['claude', 'codex', 'opencode']
 const TASK_ID = /^[a-z0-9]{1,32}$/
-const TARGET_ID = /^(opencode|codex|grok|claude|provider:[a-zA-Z0-9_-]{1,100})$/
+const TARGET_ID = ORCHESTRATION_TARGET_ID
 
 export interface OrchestrationDeps {
   service: OrchestrationService | null

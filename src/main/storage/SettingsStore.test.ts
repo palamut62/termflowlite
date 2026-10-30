@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_SETTINGS, type AppSettings } from '../../shared/types'
+import { DEFAULT_SETTINGS, DELEGATE_AGENT_KINDS, type AppSettings } from '../../shared/types'
 import { SettingsStore, normalizeWorktreeMeta } from './SettingsStore'
 
 let dir: string
@@ -49,6 +49,12 @@ describe('SettingsStore', () => {
       enabled: false, maxConcurrent: 4, timeoutMinutes: 1, claudeThreshold: 70,
       targets: { opencode: { enabled: false, model: 'm' }, 'provider:deep-seek': { enabled: true, model: '' } }
     })
+  })
+
+  it('keeps a target for every delegate agent, not just the first four', () => {
+    const targets = Object.fromEntries(DELEGATE_AGENT_KINDS.map((agent) => [agent, { enabled: false, model: `m-${agent}` }]))
+    writeFileSync(file(), JSON.stringify({ orchestration: { targets } }))
+    expect(new SettingsStore(file()).get().orchestration.targets).toEqual(targets)
   })
 
   it('keeps agent memory off by default and sanitizes its settings', () => {

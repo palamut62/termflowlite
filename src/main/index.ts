@@ -574,21 +574,22 @@ app.whenReady().then(() => {
     }
   })
   // `dosya:42:7` gibi konumlar: kayıtlı VS Code ailesi editör protokolüyle
-  // satırında açılır; editör yoksa dosya varsayılan uygulamayla açılır.
+  // satırında açılır; editör yoksa dosya varsayılan uygulamayla açılır. Klasör
+  // de açılır (proje/worktree menülerindeki "Open in VS Code"), satırsız.
   ipcMain.handle(IPC.SYSTEM_OPEN_IN_EDITOR, async (_event, value: unknown, line: unknown, column: unknown): Promise<boolean> => {
     if (typeof value !== 'string' || value.length === 0 || value.length > 8192 || !isAbsolute(value)) return false
     if (typeof line !== 'number' || !Number.isInteger(line) || line < 1 || line > 10_000_000) return false
     const col = typeof column === 'number' && Number.isInteger(column) && column > 0 && column < 100_000 ? column : undefined
     try {
       const resolved = resolvePathCandidate(value, dirname(value))
-      if (!resolved || resolved.isDirectory) return false
+      if (!resolved) return false
       const scheme = pickEditorScheme((name) => app.getApplicationNameForProtocol(`${name}://`) !== '')
       if (!scheme || !resolved.canOpen) {
         if (!resolved.canOpen) shell.showItemInFolder(resolved.path)
         else return (await shell.openPath(resolved.path)) === ''
         return true
       }
-      await shell.openExternal(editorFileUrl(scheme, resolved.path, line, col))
+      await shell.openExternal(editorFileUrl(scheme, resolved.path, resolved.isDirectory ? undefined : line, resolved.isDirectory ? undefined : col))
       return true
     } catch {
       return false

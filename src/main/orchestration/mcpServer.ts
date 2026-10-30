@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs'
-import type { DelegatedTask } from '../../shared/types'
+import { DELEGATE_AGENT_KINDS, type DelegatedTask } from '../../shared/types'
 import type { Endpoint } from './apiServer'
 
 // termflow-agents: koordinator ajanin (Claude Code, Codex, OpenCode) isi baska ajana devrettigi MCP sunucusu.
@@ -35,7 +35,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        agent: { type: 'string', description: 'Agent id from list_agents, e.g. "opencode", "codex", "grok", "claude" or "provider:<id>".' },
+        agent: { type: 'string', description: `Agent id from list_agents: ${DELEGATE_AGENT_KINDS.join(', ')} or "provider:<id>".` },
         prompt: { type: 'string', description: 'Complete, self-contained instructions: files to touch, expected behavior, what not to change.' },
         cwd: { type: 'string', description: 'Absolute path inside the git repository to work on (usually your current directory).' },
         model: { type: 'string', description: 'Optional model id; defaults to the one chosen in TermFlow settings.' },

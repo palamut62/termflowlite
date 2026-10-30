@@ -587,7 +587,12 @@ export interface OrchestrationSettings {
   targets: Record<string, OrchestrationTargetSettings>
 }
 
-export type DelegateAgentKind = 'opencode' | 'codex' | 'grok' | 'claude' | 'agy' | 'gemini' | 'qwen' | 'copilot' | 'kimi' | 'droid'
+/** Is devredilebilen ajanlarin tek kaynagi: hedef id dogrulamasi ve etiket tablosu bundan uretilir. */
+export const DELEGATE_AGENT_KINDS = ['opencode', 'codex', 'grok', 'claude', 'agy', 'gemini', 'qwen', 'copilot', 'kimi', 'droid'] as const
+export type DelegateAgentKind = (typeof DELEGATE_AGENT_KINDS)[number]
+
+/** `opencode` | `provider:<id>` gibi orchestration hedef id'leri (ayarlar ve IPC dogrulamasi). */
+export const ORCHESTRATION_TARGET_ID = new RegExp(`^(${DELEGATE_AGENT_KINDS.join('|')}|provider:[a-zA-Z0-9_-]{1,100})$`)
 
 /** Is verilebilecek hedef: kurulu ajan CLI'i ya da `claude` ile calisan saglayici profili. */
 export interface OrchestrationTarget {

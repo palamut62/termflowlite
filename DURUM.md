@@ -1,6 +1,6 @@
 # TermFlow Lite - Durum
 
-guncel: 2026-10-29
+guncel: 2026-10-30
 
 > Bu dosya projeye giren her yapay zeka aracinin ilk okudugu yerdir. Kisa tutulur (en fazla ~80 satir).
 > Kalici bilgi (mimari, kararlar, ayrintili gecmis) `PROJE-REHBER.md`'de (varsa) / README'de.
@@ -39,7 +39,12 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - Ayarlar > Terminal > "Launch at Startup" (`launchAtLogin`, main `applyLoginItem`, yalniz paketli uygulamada). Test edilmedi: kurulu surumde elle dene.
 - Ajan CLI oto-guncelleme: `main/agentUpdater.ts` (acilis +20 sn, sonra 24 saatte bir; yalniz npm global: claude/codex/opencode/gemini/qwen/copilot/pi/codebuff), ayar `autoUpdateAgents`, durum Ayarlar > Profiller satirlarinda + "Check now". Native kurulumlar (grok/droid/kimi...) dokunulmaz. Paketlenip kurulmadi.
 
-## Son oturum (2026-10-29, son arac: Claude Code, dal main)
+## Son oturum (2026-10-30, son arac: Claude Code, dal main)
+- **Dis denetim raporu incelendi (surum artmadi):** 3 madde duzeltildi. (1) Orchestration hedef id'si artik tek kaynaktan: `shared/types.ts` `DELEGATE_AGENT_KINDS` + `ORCHESTRATION_TARGET_ID`; `SettingsStore`, `ipc/orchestration.ts`, `agentRunner`, `manager` (etiketler artik `Record<DelegateAgentKind,string>`, eksik ajan derlemede hata) ve MCP `delegate_task` aciklamasi bundan uretiliyor - oncesinde 6 ajanin ayari sessizce siliniyordu. (2) "Open in VS Code" klasorde calisiyor: `SYSTEM_OPEN_IN_EDITOR` artik klasoru reddetmiyor, `editorFileUrl` satir verilmezse konum eklemiyor. (3) `resolveLaunchProfile` (App.tsx) `mergeProfiles` ile dogruluyor - Explorer sag tik menusundeki yerlesik ajanlar (`--profile gemini` vb.) artik PowerShell'e dusmuyor.
+- Denetim raporunun ANSI regex maddesi (agentRunner `parsePlainOutput`) yanlis alarm: ESC karakteri yerinde, dokunulmadi. Dogrulanmamis kalan maddeler: iOS SharedStore eslestirme, yetim worktree temizligi, `restart/restartAt`, telefon UI, `AgentEventStore` senkron I/O, `media.ts` 0 bayt, `transcriptFollow` sinirsiz buffer, `icacls /T`, `screenBridge` backpressure, site `1.15.0` fallback + kaldirilmis "Agent characters" karti.
+- verify yesil (872 test), 2 yeni birim test. Gozle denenmedi.
+
+## Onceki oturum (2026-10-29, son arac: Claude Code, dal main)
 - **1.29.0 yayinda:** ajan karakteri (Ember/Miso/Piko) uygulamadan ve siteden kaldirildi - AgentCompanion/characterEngine/characterState, `fun/agentActivity.ts`, `fun/weather.ts`, `main/weather*`, hava IPC + preload, Appearance ayarlari ve `settings` alanlari, site bolumu + `build:site`. Open-Meteo entegrasyonu da gitti; artik disariya hava istegi yok.
 - **1.29.1 yayinda:** Agent IDE sidebar ust ogeleri (Search/Tasks/Artifacts/Automations/Mobile) gercek uygulamada tek tek denendi, hepsi calisiyor. Iki eksik duzeltildi: Tasks depo disinda ham git hatasi yerine yol gosteriyor; Automations'ta Edit ve sablon kaydi dogrudan duzenleyiciye yukluyor (`savedCommandStore.show(editId)` + `clearEdit`, 1 birim test).
 - Site: Wrapped bolumunun gorseli yenilendi (eski gorselde karakter paneli vardi), `output/wrapped-shot.mjs` ile cekildi. Vercel prod iki kez guncellendi.
@@ -48,7 +53,7 @@ Kaynak repo PRIVATE `palamut62/termflow-lite-source`; release'ler PUBLIC `palamu
 - **1.30.0 Broadcast gorunurlugu:** broadcast acikken girdi alan split panelleri kirmizi cerceveli (`isBroadcastTarget`, `PaneLeaf.tsx`), SSH panellerinde kosede host etiketi (`sshTarget`), rozet hedef sayisini ya da "this tab only" gosteriyor (aktif sekme split disindaysa). 1 birim test. Gozle denenmedi.
 - Site: f9 (eller serbest, "gönder", terimler) ve Toplu girdi (cerceve + SSH host) metinleri EN/TR, Vercel prod. Yerel onizleme portu 4185 (4173 Windows ayrilmis).
 
-## Onceki oturum (2026-10-28, dal feature/phone-push)
+## Daha onceki oturum (2026-10-28, dal feature/phone-push)
 - **1.28.0 yayinda (2026-10-28):** dal main'e birlestirildi (verify yesil), `v1.28.0` etiketi itildi, Release + verify-release 7/7 yesil (run 40665062742). Site: Remote bolumune ekran paylasimi maddesi (EN/TR), Vercel prod; indirme linkleri main.js'te GitHub API'den geldigi icin elle surum guncellemesi gerekmiyor.
 - **Ekran paylasimi (tam PC telefonda):** telefon istemcisine Screen sekmesi (noVNC), masaustunde Ayarlar > Remote Access > Screen (`remote.screen {enabled,port=5900}`). Yakalama/girdi TermFlow'a yazilmadi: bilgisayarda bir VNC servisi kosar, TermFlow boru (`screenBridge.ts`, `POST /api/screen-ticket` -> tek kullanimlik bilet -> `ws /vnc` -> `127.0.0.1:port`). Kilit ekrani/UAC bu yuzden calisir. Karar + akis `docs/remote-access.md` sonunda. verify yesil (8 yeni test).
 - Ekran paylasimi gercek telefonda calisti (UltraVNC servis, 2026-10-28). Eklendi: telefon cevrilince yeniden olceklenme (noVNC yalniz pencere resize'ini dinliyor, iOS klavye/donme icin onu her zaman tetiklemiyor -> visualViewport + orientationchange), yatayda otomatik tam ekran, yapiskan klavye (PC'ye dokununca kapanmaz). VNC parolasi saklanmaz, telefonda sorulur.

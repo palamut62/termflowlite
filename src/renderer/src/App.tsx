@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_SETTINGS } from '../../shared/types'
+import { mergeProfiles } from '../../shared/profiles'
 import { resolveDefaultProfileId, useSettingsStore } from './store/settingsStore'
 import { dataHandlers, exitHandlers, resolveStartupCwd, useTerminalStore } from './store/terminalStore'
 import { WorktreeCleanupDialog } from './tabs/WorktreeCleanupDialog'
@@ -379,10 +380,11 @@ export default function App(): React.JSX.Element {
 
 function resolveLaunchProfile(request: AppLaunchRequest | null, settings: typeof DEFAULT_SETTINGS, shells: ReturnType<typeof useSettingsStore.getState>['shells']): string {
   if (!request?.profileId) return resolveDefaultProfileId(settings, shells)
+  // mergeProfiles: Explorer menusu kurulu tum yerlesik ajanlari listeliyor, bu yuzden
+  // dogrulama da yerlesikleri kapsamali (yoksa `--profile gemini` sessizce kabuga duser).
   const available = shells.some((shell) => shell.id === request.profileId) ||
-    settings.profiles.some((profile) => profile.id === request.profileId) ||
-    settings.providerProfiles.some((provider) => `provider:${provider.id}` === request.profileId) ||
-    ['claude', 'codex', 'opencode', 'ollama-serve'].includes(request.profileId)
+    mergeProfiles(settings.profiles).some((profile) => profile.id === request.profileId) ||
+    settings.providerProfiles.some((provider) => `provider:${provider.id}` === request.profileId)
   return available ? request.profileId : resolveDefaultProfileId(settings, shells)
 }
 
