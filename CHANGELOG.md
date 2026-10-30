@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.30.2 - 2026-10-30
+
+- Git Bash and zsh keep tracking the folder you are in when its name contains a percent sign. Command blocks and the folder in the status bar used to freeze in those folders.
+- Screen sharing on a slow connection pauses the picture instead of letting it pile up in memory, so a long session no longer grows without end.
+- On the phone: the keyboard no longer throws the screen view into full screen while the phone is upright, and an unclosed quote in a profile's Arguments says so instead of quietly not saving.
+- Agent Sessions and Memory find OpenCode when it was installed without npm (Scoop, WinGet or Go).
+- Administrator tabs: the folder holding the PIN gets its restricted permissions even when it was created by an earlier version.
+- Smaller fixes: a media file that shrank to nothing no longer fails to preview, and the Linux .deb update message is in English.
+
 ## 1.30.1 - 2026-10-30
 
 - "Open in VS Code" works on folders again: the project and worktree menus in the sidebar and the folder menu in the file panel opened nothing before. Without a VS Code family editor the folder opens in Explorer.

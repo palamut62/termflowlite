@@ -1,5 +1,10 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.30.2 - 2026-10-30
+
+- Everything in TermFlow Lite 1.30.2: folders with a percent sign in the name are tracked again in Git Bash and zsh, screen sharing holds back instead of filling memory on a slow connection, the phone keyboard no longer forces full screen in portrait, and OpenCode is found when installed without npm.
+- Following a subagent transcript reads it in bounded steps, so a long Claude Code session no longer pulls the whole file into memory at once.
+
 ## 1.30.1 - 2026-10-30
 
 - Everything in TermFlow Lite 1.30.1: "Open in VS Code" works on folders (project, worktree and file panel menus), and the Windows Explorer menu starts the agent you picked instead of a PowerShell tab.
