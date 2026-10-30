@@ -65,7 +65,8 @@ export type AgentEventKind = 'session' | 'activity' | 'tool' | 'approval' | 'que
 export interface AgentEvent {
   id: string
   tabId: string
-  agent: AgentKind
+  /** Calisan ajan CLI'inin adi: uc hook'lu ajan disinda katalogdakiler de (`gemini`, `qwen`...). */
+  agent: string
   kind: AgentEventKind
   title: string
   detail?: string

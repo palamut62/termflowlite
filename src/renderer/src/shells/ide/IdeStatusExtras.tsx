@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Bot, ExternalLink, LoaderCircle, MemoryStick, Moon, Network, Sun } from 'lucide-react'
 import type { ResourceSnapshot } from '../../../../shared/ipc'
 import type { IdeSettings } from '../../../../shared/types'
-import { agentForProfile } from '../../../../shared/profiles'
+import { agentCliForProfile } from '../../../../shared/profiles'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTerminalStore } from '../../store/terminalStore'
 import { IdeMenu, MenuItem, anchorOf, type MenuAnchor } from './IdeMenu'
@@ -42,7 +42,7 @@ export function IdeStatusExtras(): React.JSX.Element {
   const [open, setOpen] = useState<{ kind: 'awake' | 'resources' | 'ports'; anchor: MenuAnchor } | null>(null)
   const [appMemory, setAppMemory] = useState(0)
   const snapshot = useResources(open?.kind === 'resources' || open?.kind === 'ports')
-  const agentWorking = tabs.some((tab) => sessionState(tab, agentForProfile(settings, tab.profileId), settings.agentHooks) === 'working')
+  const agentWorking = tabs.some((tab) => sessionState(tab, agentCliForProfile(settings, tab.profileId), settings.agentHooks) === 'working')
   const awake = mode === 'on' || (mode === 'agent' && agentWorking)
 
   useEffect(() => {

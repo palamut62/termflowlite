@@ -28,5 +28,6 @@ describe('urlAt', () => {
 it('maps Shift+Enter per agent and leaves shells alone', () => {
   expect(shiftEnterSequence('claude')).toBe('\x1b\r')
   expect(shiftEnterSequence('codex')).toBe('\n')
+  expect(shiftEnterSequence('gemini')).toBe('\n')
   expect(shiftEnterSequence(null)).toBeNull()
 })

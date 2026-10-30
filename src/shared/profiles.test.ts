@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BUILTIN_PROFILES, availableProfiles, mergeProfiles, profileExecutable, sshFromProfileId, sshProfileId } from './profiles'
+import { BUILTIN_PROFILES, agentCliForCommand, agentCliForProfile, availableProfiles, mergeProfiles, profileExecutable, sshFromProfileId, sshProfileId } from './profiles'
 import { DEFAULT_SETTINGS, type AppSettings } from './types'
 
 describe('mergeProfiles', () => {
@@ -83,4 +83,26 @@ it('profileExecutable reads the program name from either command field', () => {
   expect(profileExecutable({ command: '', startupCommand: 'ollama serve' })).toBe('ollama')
   expect(profileExecutable({ command: '"C:\\Tools\\Claude.cmd" --x' })).toBe('claude')
   expect(profileExecutable({ command: '/usr/bin/aider' })).toBe('aider')
+})
+
+describe('agentCliForProfile', () => {
+  const settings = { ...DEFAULT_SETTINGS, profiles: [{ id: 'mine', name: 'Mine', command: 'C:/tools/qwen.cmd' }], providerProfiles: [{ id: 'dsk', name: 'DeepSeek', command: 'claude', apiKeyEnv: '', baseUrl: '' }] } as unknown as AppSettings
+
+  it('knows every built-in agent CLI, not only the three with hooks', () => {
+    expect(agentCliForCommand('gemini --yolo')).toBe('gemini')
+    expect(agentCliForCommand('"C:/Program Files/droid/droid.exe" --auto high')).toBe('droid')
+    expect(agentCliForCommand('claude')).toBe('claude')
+    // Shells and servers are not agents.
+    expect(agentCliForCommand('ollama serve')).toBeNull()
+    expect(agentCliForCommand('pwsh -NoLogo')).toBeNull()
+    expect(agentCliForCommand(undefined)).toBeNull()
+  })
+
+  it('resolves built-in, user and provider profiles', () => {
+    expect(agentCliForProfile(settings, 'gemini')).toBe('gemini')
+    expect(agentCliForProfile(settings, 'mine')).toBe('qwen')
+    expect(agentCliForProfile(settings, 'provider:dsk')).toBe('claude')
+    expect(agentCliForProfile(settings, 'ollama-serve')).toBeNull()
+    expect(agentCliForProfile(settings, 'nope')).toBeNull()
+  })
 })

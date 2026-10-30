@@ -36,9 +36,10 @@ export function urlAt(line: string, col: number): string | null {
 /**
  * Ajan giris kutusunda Shift+Enter ile yeni satir. Claude Code Meta+Enter'i (ESC CR)
  * yeni satir sayar (2.1.289'da denendi); Codex ve OpenCode Ctrl+J (LF) kullanir.
+ * shortcut: katalogdaki diger ajanlar icin LF varsayiliyor (yaygin TUI davranisi,
+ * tek tek denenmedi); birinde Enter gibi davranirsa buraya istisna eklenir.
  */
-export function shiftEnterSequence(agent: AgentKind | null): string | null {
-  if (agent === 'claude') return '\x1b\r'
-  if (agent === 'codex' || agent === 'opencode') return '\n'
-  return null
+export function shiftEnterSequence(agent: string | null): string | null {
+  if (!agent) return null
+  return agent === 'claude' ? '\x1b\r' : '\n'
 }

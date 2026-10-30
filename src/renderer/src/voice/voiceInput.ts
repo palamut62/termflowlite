@@ -1,5 +1,5 @@
 import type { Terminal } from '@xterm/xterm'
-import { agentForProfile, mergeProfiles } from '../../../shared/profiles'
+import { agentCliForProfile, mergeProfiles, providerFromProfileId } from '../../../shared/profiles'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTerminalStore } from '../store/terminalStore'
 import { useToastStore } from '../store/toastStore'
@@ -8,7 +8,6 @@ import { MUTED_LEVEL, nothingHeardMessage, silenceDetector, splitSendWord } from
 import { HoldToTalk } from './holdToTalk'
 import { MAX_RECORDING_MS, microphoneError, startRecording, type Recording } from './recorder'
 
-const AGENT_NAMES = { claude: 'Claude Code', codex: 'Codex', opencode: 'OpenCode' } as const
 /** Shorter or quieter recordings are treated as "nothing said" and never uploaded. */
 const MIN_SECONDS = 0.35
 const MIN_PEAK = 0.008
@@ -18,9 +17,12 @@ function contextFor(tabId: string): { kind: 'agent' | 'shell'; name: string } {
   const settings = useSettingsStore.getState().settings
   const tab = useTerminalStore.getState().tabs.find((t) => t.id === tabId)
   if (!tab) return { kind: 'shell', name: 'terminal' }
-  const agent = agentForProfile(settings, tab.profileId)
-  if (agent) return { kind: 'agent', name: AGENT_NAMES[agent] }
   const profile = mergeProfiles(settings.profiles).find((p) => p.id === tab.profileId)
+  const provider = providerFromProfileId(settings, tab.profileId)
+  // Every agent CLI counts, not only the three with hooks: at a Gemini or Qwen
+  // prompt the text is a request in words, never a shell command.
+  const agent = agentCliForProfile(settings, tab.profileId)
+  if (agent) return { kind: 'agent', name: provider?.name ?? profile?.name ?? agent }
   const shell = useSettingsStore.getState().shells.find((s) => s.id === tab.profileId)
   return { kind: 'shell', name: profile?.name ?? shell?.name ?? tab.title }
 }

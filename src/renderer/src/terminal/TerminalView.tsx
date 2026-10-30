@@ -39,7 +39,7 @@ import { redactApiKeys } from '../../../shared/secretRedaction'
 import { agentKindForCommand, parseAgentOutput } from '../../../shared/agentEvents'
 import { codexOscEvent, codexTitleWorking } from '../../../shared/agentHooks'
 import { applyHookEvent, hasAgentHook, HOOK_OWNED_KINDS } from './agentHookEvents'
-import { mergeProfiles, providerFromProfileId } from '../../../shared/profiles'
+import { agentCliForCommand, mergeProfiles, providerFromProfileId } from '../../../shared/profiles'
 import { useAgentEventStore } from '../store/agentEventStore'
 import { useSavedCommandStore } from '../store/savedCommandStore'
 import { useHandoverStore } from '../store/handoverStore'
@@ -320,7 +320,10 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
     lastSizeRef.current = { cols: term.cols, rows: term.rows }
 
     const tabProfile = mergeProfiles(settings.profiles).find((item) => item.id === profileId)
-    const tabAgent = agentKindForCommand(tabProfile?.startupCommand || tabProfile?.command || providerFromProfileId(settings, profileId)?.command)
+    const tabCommand = tabProfile?.startupCommand || tabProfile?.command || providerFromProfileId(settings, profileId)?.command
+    const tabAgent = agentKindForCommand(tabCommand)
+    // Shift+Enter her ajan CLI'inda calisir; hook/izin kipi yalniz tabAgent'ta.
+    const tabAgentCli = agentCliForCommand(tabCommand)
     // Codex durumunu kendisi bildirir: OSC 9 (tur sonu / onay) ve baslikta spinner (calisiyor).
     let codexDoneAt = 0
     const codexOsc = tabAgent === 'codex' && settings.agentHooks
@@ -367,10 +370,11 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
             : 'running'
         useTerminalStore.getState().setTabActivity(tabId, activity)
       }
-      if (tabAgent) {
-        for (const event of parseAgentOutput(tabAgent, data)) {
+      // Her ajan CLI'i icin: cikti tahmini Agent Inbox'a ve widget'in "needs you" satirina besler.
+      if (tabAgentCli) {
+        for (const event of parseAgentOutput(tabAgentCli, data)) {
           if (hooked && HOOK_OWNED_KINDS.has(event.kind)) continue
-          useAgentEventStore.getState().append(tabId, tabAgent, permissionMode, event)
+          useAgentEventStore.getState().append(tabId, tabAgentCli, permissionMode, event)
         }
       }
     }
@@ -582,7 +586,7 @@ export function TerminalView({ tabId, active, visible = active, splitPane, split
       if (voice.handle(e)) return false
       // Ajan giris kutusunda Shift+Enter gondermez, yeni satir ekler.
       if (e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && useSettingsStore.getState().settings.shiftEnterNewline) {
-        const newline = shiftEnterSequence(tabAgent)
+        const newline = shiftEnterSequence(tabAgentCli)
         if (newline) {
           if (e.type === 'keydown') window.termflow.pty.write(tabId, newline)
           return false

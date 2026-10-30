@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, Ellipsis, GitBranch, Link2, LoaderCircle, Moon, Pin, Plus } from 'lucide-react'
 import type { WorktreeEntry } from '../../../../shared/ipc'
 import { worktreeKey, type IdeSettings } from '../../../../shared/types'
-import { agentForProfile, availableProfiles } from '../../../../shared/profiles'
+import { BUILTIN_PROFILES, agentCliForProfile, availableProfiles } from '../../../../shared/profiles'
 import { resolveDefaultProfileId, useSettingsStore } from '../../store/settingsStore'
 import { useTerminalStore } from '../../store/terminalStore'
 import { useToastStore } from '../../store/toastStore'
@@ -16,7 +16,7 @@ import { useIdePageStore } from './pages/idePageStore'
 import { lastUsedTab, scopeMapEquals, useWorkspaceScopeStore } from './workspaceScope'
 import { lastSeen } from '../../store/jumpPaletteStore'
 
-const AGENT_NAMES = { claude: 'Claude Code', codex: 'Codex', opencode: 'OpenCode' } as const
+const AGENT_NAMES: Record<string, string> = Object.fromEntries(BUILTIN_PROFILES.map((p) => [p.id, p.name]))
 const STATE_LABELS: Record<SessionState, string> = { working: 'Working', 'needs-input': 'Needs input', done: 'Done', error: 'Error', idle: 'Idle' }
 const DOT: Record<SessionState, string> = { working: 'ide-dot-working', 'needs-input': 'ide-dot-needs-input', error: 'ide-dot-error', done: 'ide-dot-done', idle: 'ide-dot-idle' }
 
@@ -113,7 +113,7 @@ export function ProjectTree({ onNewWorktree }: { onNewWorktree: () => void }): R
     repoRoots,
     tabs,
     activeTabId,
-    agentOf: (tab) => agentForProfile(settings, tab.profileId),
+    agentOf: (tab) => agentCliForProfile(settings, tab.profileId),
     hooked: settings.agentHooks,
     view: treeViewOf(settings.ide),
     meta: settings.ide.worktreeMeta
@@ -408,7 +408,7 @@ function WorktreeExtras({ worktree }: { worktree: IdeWorktree }): React.JSX.Elem
 
 function SessionRow({ session, now, onMenu }: { session: IdeSession; now: number; onMenu: (e: React.MouseEvent) => void }): React.JSX.Element {
   const profileId = useTerminalStore((s) => s.tabs.find((t) => t.id === session.tabId)?.profileId ?? '')
-  const who = session.agent ? AGENT_NAMES[session.agent] : session.title
+  const who = session.agent ? AGENT_NAMES[session.agent] ?? session.agent : session.title
   const label = session.agent ? `${STATE_LABELS[session.state]} - ${who}` : who
   return (
     <button

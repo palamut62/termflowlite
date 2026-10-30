@@ -1,4 +1,4 @@
-import { worktreeKey, type AgentKind, type TerminalTab, type WorktreeMeta, type WorktreeStatus } from '../../../../shared/types'
+import { worktreeKey, type TerminalTab, type WorktreeMeta, type WorktreeStatus } from '../../../../shared/types'
 import type { WorktreeEntry } from '../../../../shared/ipc'
 import { pathLabel } from '../../sessionRail'
 
@@ -11,7 +11,8 @@ export type SessionState = 'working' | 'needs-input' | 'done' | 'error' | 'idle'
 export interface IdeSession {
   tabId: string
   title: string
-  agent: AgentKind | null
+  /** Calisan ajan CLI'inin adi (`claude`, `gemini`...), duz kabukta null. */
+  agent: string | null
   state: SessionState
   /** Bu durumun basladigi an (epoch ms); "6m" gibi gosterilir. */
   since: number
@@ -66,7 +67,7 @@ export interface IdeTreeInput {
   repoRoots: ReadonlyMap<string, string>
   tabs: readonly TerminalTab[]
   activeTabId: string | null
-  agentOf: (tab: TerminalTab) => AgentKind | null
+  agentOf: (tab: TerminalTab) => string | null
   /** agent-hooks acik mi (ayar). */
   hooked?: boolean
   view?: IdeTreeView
@@ -86,7 +87,7 @@ export function isInside(child: string, parent: string): boolean {
  * `hooked`: ajan durumunu kendisi bildiriyor (agent-hooks acik, Claude/Codex). O zaman ilk olaydan once
  * ajan prompt bekliyordur; cikti tahminine bakilmaz (ilk acilista "Working" gorunmesin).
  */
-export function sessionState(tab: TerminalTab, agent: AgentKind | null, hooked = false): SessionState {
+export function sessionState(tab: TerminalTab, agent: string | null, hooked = false): SessionState {
   if (tab.agentHook) return tab.agentHook.state === 'idle' ? 'idle' : tab.agentHook.state
   if (tab.activity === 'error') return 'error'
   if (hooked && (agent === 'claude' || agent === 'codex')) return 'idle'

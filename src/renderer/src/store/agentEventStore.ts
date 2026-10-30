@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
-import type { AgentEvent, AgentKind, AgentPermissionMode } from '../../../shared/types'
+import type { AgentEvent, AgentPermissionMode } from '../../../shared/types'
 import type { ParsedAgentEvent } from '../../../shared/agentEvents'
 
 interface AgentEventState {
@@ -10,7 +10,7 @@ interface AgentEventState {
   load(): Promise<void>
   show(): void
   hide(): void
-  append(tabId: string, agent: AgentKind, permissionMode: AgentPermissionMode, event: ParsedAgentEvent): void
+  append(tabId: string, agent: string, permissionMode: AgentPermissionMode, event: ParsedAgentEvent): void
   clear(): void
 }
 

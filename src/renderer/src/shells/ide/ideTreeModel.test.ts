@@ -49,6 +49,8 @@ describe('session state', () => {
     // Hook'lu Claude ilk olaydan once prompt bekliyor; cikti tahmini "Working" demesin.
     expect(sessionState(tab('x', '/', { activity: 'running' }), 'claude', true)).toBe('idle')
     expect(sessionState(tab('x', '/', { activity: 'running' }), 'opencode', true)).toBe('working')
+    // Hook'u olmayan katalog ajanlari da "Working" gosterir, sadece uc ajan degil.
+    expect(sessionState(tab('x', '/', { activity: 'running' }), 'gemini', true)).toBe('working')
   })
 
   it('picks the most urgent state for a collapsed group', () => {

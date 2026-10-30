@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { agentForProfile } from '../../../shared/profiles'
+import { agentCliForProfile } from '../../../shared/profiles'
 import type { AgentPermissionMode, AppSettings } from '../../../shared/types'
 import { client, errorText, useRemote } from '../store'
 import { launchOptions, type LaunchOption } from '../profiles'
@@ -44,7 +44,7 @@ export function NewTabSheet({ onClose, initialCwd, launchCommand }: { onClose():
     if (admin && !/^\d{6,12}$/.test(pin)) { toast('Enter the 6 to 12 digit administrator PIN.', 'error'); return }
     setBusy(option.id)
     try {
-      const isAgent = settings ? !!agentForProfile(settings as AppSettings, option.id) : false
+      const isAgent = settings ? !!agentCliForProfile(settings as AppSettings, option.id) : false
       const tabId = await client().call<string>('tab.open', {
         profileId: option.id,
         cwd: cwd.trim() || undefined,

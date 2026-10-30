@@ -57,7 +57,7 @@ export function applyPermissionArgs(command: string, args: string[], mode: Agent
 }
 
 /** Converts provider TUI/hook output into small, secret-free status events. */
-export function parseAgentOutput(agent: AgentKind, chunk: string): ParsedAgentEvent[] {
+export function parseAgentOutput(agent: string, chunk: string): ParsedAgentEvent[] {
   const text = chunk.replace(ANSI, '').replace(/\r/g, '\n')
   const lines = text.split('\n').map((line) => line.trim()).filter(Boolean)
   const events: ParsedAgentEvent[] = []

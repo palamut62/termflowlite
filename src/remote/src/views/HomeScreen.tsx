@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Bot, ChevronRight, CircleDot, GitPullRequest, History, ListTodo, Monitor, Plus, SquareTerminal } from 'lucide-react'
-import { agentForProfile } from '../../../shared/profiles'
+import { agentCliForProfile } from '../../../shared/profiles'
 import type { GitHubTask } from '../../../shared/ipc'
 import type { AgentKind, AgentSession, AppSettings } from '../../../shared/types'
 import type { AgentUsage } from '../../../shared/usage'
@@ -47,7 +47,7 @@ export function HomeScreen(): React.JSX.Element {
     // Once per visit: the lists are snapshots, the live state comes from the tabs.
   }, [])
 
-  const agentTabs = useMemo(() => (settings ? tabs.filter((t) => agentForProfile(settings, t.profileId)) : []), [tabs, settings])
+  const agentTabs = useMemo(() => (settings ? tabs.filter((t) => agentCliForProfile(settings, t.profileId)) : []), [tabs, settings])
   const working = agentTabs.filter((t) => t.activity === 'running' || t.activity === 'waiting').length
   const recentSessions = sessions?.filter((s) => s.updatedAt > Date.now() - 30 * DAY).length
   // Resume: the desktop's own tab first, then agents that need you, then the rest.

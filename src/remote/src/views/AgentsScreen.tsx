@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bell, Bookmark, Bot, ChevronRight, History, Play, RefreshCw } from 'lucide-react'
-import { agentForProfile, availableProfiles, providerProfileId } from '../../../shared/profiles'
+import { BUILTIN_PROFILES, agentCliForProfile, agentForProfile, availableProfiles, providerProfileId } from '../../../shared/profiles'
 import type { RemoteSavedCommand } from '../../../shared/remote'
 import type { AgentEvent, AgentKind, AgentPermissionMode, AgentSession, AppSettings } from '../../../shared/types'
 import { client, errorText, useRemote } from '../store'
 import { profileName } from '../profiles'
 import { Empty, Group, Row, Select, Sheet, timeAgo } from '../ui'
 
-const AGENT_NAME: Record<AgentKind, string> = { claude: 'Claude Code', codex: 'Codex', opencode: 'OpenCode' }
+// Olaylar katalogdaki her ajandan gelebilir; etiket yerlesik profillerden.
+const AGENT_NAME: Record<string, string> = Object.fromEntries(BUILTIN_PROFILES.map((p) => [p.id, p.name]))
 const ACTIVITY: Record<string, string> = { running: 'Working', waiting: 'Waiting for you', unread: 'New output', completed: 'Done', error: 'Failed' }
 const EVENT_ATTENTION = new Set<AgentEvent['kind']>(['approval', 'question', 'error'])
 
@@ -53,7 +54,7 @@ export function AgentsScreen(): React.JSX.Element {
 
   useEffect(() => { void load() }, [load])
 
-  const agentTabs = useMemo(() => (settings ? tabs.filter((t) => agentForProfile(settings as AppSettings, t.profileId)) : []), [tabs, settings])
+  const agentTabs = useMemo(() => (settings ? tabs.filter((t) => agentCliForProfile(settings as AppSettings, t.profileId)) : []), [tabs, settings])
   const visibleSessions = (sessions ?? []).filter((s) => filter === 'all' || s.agent === filter)
 
   const runSaved = async (item: RemoteSavedCommand): Promise<void> => {
@@ -85,7 +86,7 @@ export function AgentsScreen(): React.JSX.Element {
       {events.some((e) => EVENT_ATTENTION.has(e.kind)) && (
         <Group title="Needs attention">
           {events.filter((e) => EVENT_ATTENTION.has(e.kind)).slice(0, 8).map((e) => (
-            <Row key={e.id} label={<><Bell size={14} className="bad" /> {e.title}</>} hint={`${AGENT_NAME[e.agent]} · ${timeAgo(e.createdAt)}${e.detail ? ` · ${e.detail}` : ''}`} onClick={tabs.some((t) => t.id === e.tabId) ? () => setCurrentTab(e.tabId) : undefined} />
+            <Row key={e.id} label={<><Bell size={14} className="bad" /> {e.title}</>} hint={`${AGENT_NAME[e.agent] ?? e.agent} · ${timeAgo(e.createdAt)}${e.detail ? ` · ${e.detail}` : ''}`} onClick={tabs.some((t) => t.id === e.tabId) ? () => setCurrentTab(e.tabId) : undefined} />
           ))}
         </Group>
       )}

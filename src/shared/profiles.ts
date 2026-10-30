@@ -45,6 +45,30 @@ export function agentForProfile(settings: Pick<AppSettings, 'providerProfiles' |
   return agentKindForCommand(profile?.startupCommand || profile?.command)
 }
 
+/**
+ * `agentForProfile` yalnızca derin entegrasyonu olan üç ajanı (hook, izin kipi,
+ * kullanım sayacı) tanır. Sekmede bir ajan CLI'ı mı çalışıyor sorusunun cevabı
+ * ise bu: yerleşik katalogdaki her ajan için çalıştırdığı program adını döner
+ * (`claude`, `gemini`, `qwen`...), düz kabukta null. `ollama serve` bir ajan
+ * değil, sunucudur: listede yoktur.
+ */
+/** Lazily built: BUILTIN_PROFILES is declared further down in this module. */
+let agentExecutables: Set<string> | null = null
+
+export function agentCliForCommand(command: string | undefined): string | null {
+  if (!command?.trim()) return null
+  const executable = profileExecutable({ command, startupCommand: undefined })
+  agentExecutables ??= new Set(BUILTIN_PROFILES.map(profileExecutable).filter((name) => name !== 'ollama'))
+  return agentExecutables.has(executable) ? executable : null
+}
+
+export function agentCliForProfile(settings: Pick<AppSettings, 'providerProfiles' | 'profiles'>, profileId: string): string | null {
+  const provider = providerFromProfileId(settings, profileId)
+  if (provider) return agentCliForCommand(provider.command)
+  const profile = mergeProfiles(settings.profiles).find((item) => item.id === profileId)
+  return agentCliForCommand(profile?.startupCommand || profile?.command)
+}
+
 /** `ssh:<connectionId>` profil id'sini kayıtlı SSH bağlantısına çözer. */
 export function sshFromProfileId(settings: AppSettings, profileId: string): SshConnection | undefined {
   if (!profileId.startsWith('ssh:')) return undefined

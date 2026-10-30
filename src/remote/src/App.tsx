@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Camera, FolderGit2, House, Monitor, QrCode, Settings as SettingsIcon, SquareTerminal, WifiOff } from 'lucide-react'
 import { isLightColor } from '../../renderer/src/backdrop'
 import { resolveTheme } from '../../renderer/src/themes/themes'
-import { agentForProfile } from '../../shared/profiles'
+import { agentCliForProfile } from '../../shared/profiles'
 import { RemoteClient, loadToken, pairWithCode, saveToken } from './client'
 import { HAPTIC_GAP_MS, finishedHaptic, hasNative, postNative, type ActivitySeen } from './native'
 import { extractPairCode, readQrFromPhoto } from './qr'
@@ -160,7 +160,7 @@ function useNativeSignals(): void {
   const settings = useRemote((s) => s.settings)
   useEffect(() => {
     if (!hasNative() || connection !== 'online' || !settings) return
-    const agentOf = (profileId: string): boolean => agentForProfile(settings, profileId) !== null
+    const agentOf = (profileId: string): boolean => agentCliForProfile(settings, profileId) !== null
     postNative({ type: 'status', computer, tabs: tabs.map(({ id, title, activity, profileId }) => ({ id, title, activity, agent: agentOf(profileId) })) })
   }, [tabs, computer, connection, settings])
 }
