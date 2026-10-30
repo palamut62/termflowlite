@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.31.0 - 2026-10-30
+
+- Every agent in the catalogue is treated as an agent, not only Claude Code, Codex and OpenCode. In Antigravity, Gemini CLI, Qwen Code, GitHub Copilot CLI, Grok, Droid, Kimi, Pi, Codebuff, Cursor Agent, Amp, Aider and Crush tabs:
+  - Voice input writes what you say as a request in words instead of shaping it into a shell command, and ending with "gönder", "send" or "enter" presses Enter.
+  - Shift+Enter adds a new line in the agent's input box.
+  - The tab counts as an agent on your phone and in the iOS widget and Live Activity.
+  - What the agent is doing shows up in the Agent Inbox and on the widget, including when it is waiting for you.
+- Hooks, permission modes (Safe/Workspace/Full) and usage meters are unchanged: those still need Claude Code or Codex, so in the other agents the state is read from the output and is a guess.
+
 ## 1.30.2 - 2026-10-30
 
 - Git Bash and zsh keep tracking the folder you are in when its name contains a percent sign. Command blocks and the folder in the status bar used to freeze in those folders.

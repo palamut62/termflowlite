@@ -1,5 +1,10 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.31.0 - 2026-10-30
+
+- Everything in TermFlow Lite 1.31.0: every agent in the catalogue (Gemini CLI, Qwen Code, Antigravity, Copilot, Grok, Droid, Kimi and the rest) now gets voice input as a prompt, Shift+Enter for a new line, agent status on the phone and in the widget, and its own line in the Agent Inbox.
+- The project tree and the status bar show those agents as Working while they run; before, they looked idle no matter what they were doing.
+
 ## 1.30.2 - 2026-10-30
 
 - Everything in TermFlow Lite 1.30.2: folders with a percent sign in the name are tracked again in Git Bash and zsh, screen sharing holds back instead of filling memory on a slow connection, the phone keyboard no longer forces full screen in portrait, and OpenCode is found when installed without npm.
