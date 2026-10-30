@@ -1,7 +1,7 @@
 import { execFile } from 'child_process'
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'crypto'
 import { EventEmitter } from 'events'
-import { readFileSync, writeFileSync } from 'fs'
+import { closeSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
 import { createServer, connect, type Server, type Socket } from 'net'
 import { userInfo } from 'os'
 import { join } from 'path'
@@ -53,6 +53,34 @@ export function checkPin(record: PinRecord, pin: string, now = Date.now()): { ok
   return fails >= MAX_FAILS
     ? { ok, record: { ...record, fails: 0, lockedUntil: now + LOCK_MS }, error: 'Too many wrong PINs. Try again in 15 minutes.' }
     : { ok, record: { ...record, fails }, error: 'Wrong PIN.' }
+}
+
+/**
+ * `elevation.json` uzerinde surecler arasi kilit. Zamanlanmis gorev
+ * `-MultipleInstances Parallel` ile tanimli (her yonetici sekmesi kendi host'unu
+ * ister), bu yuzden iki host ayni anda PIN deneyebilir; kilit olmadan ikisi de
+ * ayni sayaci okuyup yazar ve yanlis deneme sayisi kaybolur.
+ */
+export function withRecordLock<T>(file: string, run: () => T, attempts = 100, staleMs = 2000): T {
+  const lock = `${file}.lock`
+  const sleep = (ms: number): void => { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms) }
+  let fd: number | undefined
+  for (let attempt = 0; attempt < attempts && fd === undefined; attempt++) {
+    try {
+      fd = openSync(lock, 'wx')
+    } catch {
+      // Sahibi cokmus olabilir: eski kilit kirilir. Hic alinamazsa yine de devam
+      // edilir; kullaniciyi yonetici sekmesinden tamamen mahrum etmek daha kotu.
+      try { if (Date.now() - statSync(lock).mtimeMs > staleMs) rmSync(lock, { force: true }) } catch { /* baskasi sildi */ }
+      sleep(20)
+    }
+  }
+  try {
+    return run()
+  } finally {
+    if (fd !== undefined) closeSync(fd)
+    try { rmSync(lock, { force: true }) } catch { /* zaten silinmis */ }
+  }
 }
 
 export function pipePath(): string {
@@ -128,6 +156,11 @@ let grant: { pin: string; expires: number } | null = null
 export function grantElevation(pin: string): void {
   if (!PIN_RE.test(pin)) throw new Error('The PIN must be 6 to 12 digits.')
   grant = { pin, expires: Date.now() + GRANT_MS }
+}
+
+/** Telefon onayi hala gecerli mi (yeniden baslatma denemeden once sorulur). */
+export function hasElevationGrant(): boolean {
+  return !!grant && grant.expires >= Date.now()
 }
 
 function takeGrant(): string {
@@ -309,10 +342,13 @@ export function runElevatedHost(deps: HostDeps = {
         const request = raw as Partial<HostRequest>
         let error: string | undefined
         try {
-          const record = JSON.parse(readFileSync(deps.recordFile, 'utf8').replace(/^\uFEFF/, '')) as PinRecord
-          const check = checkPin(record, typeof request.pin === 'string' ? request.pin : '')
-          writeFileSync(deps.recordFile, JSON.stringify(check.record))
-          error = check.error
+          // Okuma + sayac yazimi tek parca: paralel host'lar sayaci birbirinin uzerine yazmasin.
+          error = withRecordLock(deps.recordFile, () => {
+            const record = JSON.parse(readFileSync(deps.recordFile, 'utf8').replace(/^\uFEFF/, '')) as PinRecord
+            const check = checkPin(record, typeof request.pin === 'string' ? request.pin : '')
+            writeFileSync(deps.recordFile, JSON.stringify(check.record))
+            return check.error
+          })
         } catch {
           error = 'Administrator tabs are not set up on this PC.'
         }

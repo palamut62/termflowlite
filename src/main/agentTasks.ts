@@ -2,7 +2,7 @@ import { readdir, readFile, stat } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import type { AgentTask } from '../shared/ipc'
-import { defaultClaudeDir } from './claudeAccount'
+import { claudeConfigDirs } from './claudeAccount'
 
 const SESSION_ID = /^[\w-]{1,100}$/
 
@@ -55,18 +55,20 @@ async function subagentLabel(jsonl: string, id: string): Promise<string> {
 
 /**
  * Claude Code alt ajanlari (Task/Agent araci): <claude>/projects/<proje>/<oturum>/subagents/agent-<id>.jsonl.
- * shortcut: yalniz varsayilan Claude config dizini taranir; baska hesaplarin (CLAUDE_CONFIG_DIR) alt ajanlari listelenmez.
+ * Her hesabin config klasoru taranir (CLAUDE_CONFIG_DIR ile acilmis ikinci hesaplar dahil).
  */
-export async function listSubagents(sessionId: string, follower: TranscriptFollower, root = join(defaultClaudeDir(), 'projects')): Promise<AgentTask[]> {
+export async function listSubagents(sessionId: string, follower: TranscriptFollower, roots: string | string[] = claudeConfigDirs().map((dir) => join(dir, 'projects'))): Promise<AgentTask[]> {
   if (!SESSION_ID.test(sessionId)) throw new Error('invalid session id')
   const found: AgentTask[] = []
-  for (const project of await readdir(root).catch(() => [] as string[])) {
-    const dir = join(root, project, sessionId, 'subagents')
-    for (const file of await readdir(dir).catch(() => [] as string[])) {
-      if (!file.endsWith('.jsonl')) continue
-      const path = join(dir, file)
-      const info = await stat(path).catch(() => null)
-      if (info?.isFile()) found.push({ id: file.slice(0, -'.jsonl'.length), path, size: info.size, mtimeMs: info.mtimeMs, command: followCommand(follower, path) })
+  for (const root of typeof roots === 'string' ? [roots] : roots) {
+    for (const project of await readdir(root).catch(() => [] as string[])) {
+      const dir = join(root, project, sessionId, 'subagents')
+      for (const file of await readdir(dir).catch(() => [] as string[])) {
+        if (!file.endsWith('.jsonl')) continue
+        const path = join(dir, file)
+        const info = await stat(path).catch(() => null)
+        if (info?.isFile()) found.push({ id: file.slice(0, -'.jsonl'.length), path, size: info.size, mtimeMs: info.mtimeMs, command: followCommand(follower, path) })
+      }
     }
   }
   const newest = found.sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, 20)

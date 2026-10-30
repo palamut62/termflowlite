@@ -38,7 +38,8 @@ vi.mock('@lydell/node-pty', () => ({
 }))
 
 vi.mock('./ShellDiscovery', () => ({
-  resolveShell: () => ({ shell: 'cmd.exe', args: [], cwd: 'C:\\', env: {} })
+  resolveShell: () => ({ shell: 'cmd.exe', args: [], cwd: 'C:\\', env: {} }),
+  currentSearchPath: () => process.env.Path || process.env.PATH || ''
 }))
 
 const input = { kind: 'cmd' as const, cols: 120, rows: 30 }

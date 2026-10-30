@@ -103,7 +103,17 @@ export const useRemote = create<RemoteState>()((set, get) => ({
   },
 
   setScreen: (screen) => set({ screen }),
-  setCurrentTab: (currentTabId) => set({ currentTabId, screen: 'terminal' }),
+  setCurrentTab: (currentTabId) => {
+    const { tabs } = get()
+    // Kapanmis bir sekmenin bildirimine dokunulabilir (#tab=<id>). Sekme listesi
+    // zaten elimizdeyse bos ekran gostermek yerine acik olanda kal.
+    if (currentTabId && tabs.length > 0 && !tabs.some((tab) => tab.id === currentTabId)) {
+      get().toast('That tab is closed.')
+      set({ screen: 'terminal' })
+      return
+    }
+    set({ currentTabId, screen: 'terminal' })
+  },
 
   toast(text, tone = 'info') {
     const id = ++toastId

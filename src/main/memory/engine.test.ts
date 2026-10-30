@@ -55,6 +55,33 @@ function setup(options: { sources: SessionSource[]; digests?: Record<string, Ses
 const source = (id: string, mtime = NOW - 60 * 60 * 1000, size = 100): SessionSource => ({ agent: 'claude', id, mtime, size, path: `/x/${id}.jsonl` })
 
 describe('MemoryEngine', () => {
+  it('runs a forced pass after the scheduled one instead of swallowing it', async () => {
+    // Zamanlanmis tur taze oturumu atlar; "Run now" bitmesini bekleyip zorlamali kosar.
+    const live = source('live', NOW - LIVE_MS / 2)
+    const { engine, readDigest } = setup({ sources: [live] })
+    const scheduled = engine.run()
+    const forced = engine.run({ force: true })
+    expect(forced).not.toBe(scheduled)
+    await scheduled
+    await forced
+    expect(readDigest).toHaveBeenCalledTimes(1)
+  })
+
+  it('stops writing when the memory is cleared mid-run', async () => {
+    let clearNow = (): void => undefined
+    const { engine, store, project } = setup({
+      sources: [source('a')],
+      chat: async (request) => {
+        clearNow() // model cevabi donerken kullanici Clear'a basti
+        return { content: request.jsonSchema ? SUMMARY : '## Status\nx', usage: { promptTokens: 1, completionTokens: 1 } }
+      }
+    })
+    clearNow = () => engine.clear()
+    await engine.run()
+    expect(store.readProject(normalizePath(project))).toBeNull()
+    expect(store.listProjects()).toEqual([])
+  })
+
   it('summarizes new sessions, merges the project and skips unchanged ones next time', async () => {
     const { engine, store, chat, project, statuses } = setup({ sources: [source('a'), source('b')] })
     const status = await engine.run()

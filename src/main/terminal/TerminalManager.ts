@@ -7,6 +7,7 @@ import { profileToInput, resolveProfileId } from './profileResolver'
 import { prepareLaunch } from './cli'
 import type { HookLaunch } from '../agentHooks/hookServer'
 import { effectiveClaudeStatusLine } from '../agentHooks/claudeStatusLine'
+import { hasElevationGrant } from './elevation'
 
 export function applyProviderSecret(
   input: CreateTerminalInput,
@@ -126,6 +127,13 @@ export class TerminalManager {
     this.shells = shells
   }
 
+  /**
+   * Yeniden baslatma icin acilis argumanlari. `prepareLaunch` ciktisi degil girdisi
+   * saklanir: aksi halde ajan komutuna gomulu eski klasor (`--dir <cwd>`) restartAt'te
+   * de kullanilirdi. Tek seferlik baslangic prompt'u (`launchCommand`) bilerek saklanmaz.
+   */
+  private readonly launches = new Map<string, { profileId: string; cwd?: string; resumeSession?: AgentSessionRef; permissionMode?: AgentPermissionMode; model?: string; elevated?: boolean }>()
+
   /** Resolve a profile id + create the PTY at the measured cell size. */
   create(tabId: string, profileId: string, cols: number, rows: number, cwd?: string, resumeSession?: AgentSessionRef, launchCommand?: string, permissionMode?: AgentPermissionMode, model?: string, elevated?: boolean): { pid: number } {
     let settings = this.getSettings()
@@ -147,9 +155,10 @@ export class TerminalManager {
     const hooks = settings.agentHooks === false ? null : this.hookLaunch()
     // usage-meter: Claude limitleri icin status line; kullanicinin kendi status line'i sarmalanir, gorunumu degismez.
     const hookLaunch = hooks && settings.claudeUsage && agentForProfile(settings, resolvedId) === 'claude'
-      ? { ...hooks, claudeSettingsPath: hooks.claudeUsageSettings(effectiveClaudeStatusLine(input.cwd)) }
+      ? { ...hooks, claudeSettingsPath: hooks.claudeUsageSettings(effectiveClaudeStatusLine(input.cwd, undefined, input.env?.CLAUDE_CONFIG_DIR)) }
       : hooks
     const launch = prepareLaunch(remote ? { ...input, cols: remote.cols, rows: remote.rows } : input, hookLaunch ? { tabId, launch: hookLaunch } : undefined)
+    this.launches.set(tabId, { profileId, cwd, resumeSession, permissionMode, model, elevated })
     const result = this.core.create(tabId, launch)
     this.reportedSizes.delete(tabId)
     this.reportSize(tabId)
@@ -170,6 +179,7 @@ export class TerminalManager {
 
   kill(id: string): void {
     this.core.kill(id)
+    this.launches.delete(id)
     this.desktopSizes.delete(id)
     this.remoteSizes.delete(id)
     this.reportedSizes.delete(id)
@@ -190,11 +200,26 @@ export class TerminalManager {
   }
 
   restart(id: string): { pid: number } | null {
-    return this.keepRemoteSize(id, this.core.restart(id))
+    return this.relaunch(id)
   }
 
   restartAt(id: string, cwd: string): { pid: number } | null {
-    return this.keepRemoteSize(id, this.core.restartAt(id, cwd))
+    return this.relaunch(id, cwd)
+  }
+
+  /** Profili bastan cozerek yeniden baslatir; klasor verilirse yeni klasorde. */
+  private relaunch(id: string, cwd?: string): { pid: number } | null {
+    const launch = this.launches.get(id)
+    const size = this.desktopSizes.get(id) ?? this.core.size(id)
+    if (!launch || !size) {
+      // Acilis argumanlari bilinmiyorsa (eski oturum) eldeki hazir girdiyle devam.
+      return this.keepRemoteSize(id, cwd ? this.core.restartAt(id, cwd) : this.core.restart(id))
+    }
+    // Yonetici sekmesi telefon onayini tuketir: onay yoksa calisan sekmeyi oldurmeden uyar.
+    if (launch.elevated && !hasElevationGrant()) throw new Error('Administrator tabs need approval from your phone. Open a new one there.')
+    const next = { ...launch, ...(cwd ? { cwd } : {}) }
+    this.launches.set(id, next)
+    return this.keepRemoteSize(id, this.create(id, next.profileId, size.cols, size.rows, next.cwd, next.resumeSession, undefined, next.permissionMode, next.model, next.elevated))
   }
 
   /** A restarted process spawns at its original size; a phone viewing it keeps its own. */

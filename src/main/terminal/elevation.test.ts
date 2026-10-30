@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { randomBytes } from 'crypto'
 import { afterEach, describe, expect, it } from 'vitest'
-import { checkPin, grantElevation, hashPin, resetElevationBridge, runElevatedHost, spawnElevated, type ElevatedSpawn, type HostDeps } from './elevation'
+import { checkPin, grantElevation, hashPin, resetElevationBridge, runElevatedHost, spawnElevated, withRecordLock, type ElevatedSpawn, type HostDeps } from './elevation'
 
 const SPAWN: ElevatedSpawn = { file: 'pwsh.exe', args: [], cwd: 'C:\\', env: {}, cols: 80, rows: 24 }
 
@@ -120,5 +120,18 @@ describe('elevated bridge', () => {
     proc.onData((d) => output.push(d))
     await until(() => output.length > 0)
     expect(output.join('')).toMatch(/not set up/)
+  })
+})
+
+describe('record lock', () => {
+  it('runs the body, cleans up and steals a stale lock', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'termflow-elev-lock-'))
+    const file = join(dir, 'elevation.json')
+    expect(withRecordLock(file, () => 'done')).toBe('done')
+    expect(existsSync(`${file}.lock`)).toBe(false)
+    // Sahipsiz kalmis kilit kirilir, yoksa yonetici sekmesi bir daha hic acilamazdi.
+    writeFileSync(`${file}.lock`, '')
+    expect(withRecordLock(file, () => 'after stale', 3, 0)).toBe('after stale')
+    expect(existsSync(`${file}.lock`)).toBe(false)
   })
 })

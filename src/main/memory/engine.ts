@@ -44,6 +44,10 @@ async function pool<T>(items: T[], limit: number, work: (item: T) => Promise<voi
 
 export class MemoryEngine {
   private running: Promise<MemoryStatus> | null = null
+  private runningForce = false
+  private queuedForce: Promise<MemoryStatus> | null = null
+  /** clear()/forget() bunu artirir: devam eden tur kendi yazimlarini iptal eder. */
+  private generation = 0
   private status: MemoryStatus
 
   constructor(private readonly options: MemoryEngineOptions) {
@@ -71,19 +75,32 @@ export class MemoryEngine {
   }
 
   run(options: RunOptions = {}): Promise<MemoryStatus> {
-    this.running ??= this.execute(options).finally(() => { this.running = null })
-    return this.running
+    if (!this.running) {
+      this.runningForce = options.force === true
+      this.running = this.execute(options).finally(() => { this.running = null; this.runningForce = false })
+      return this.running
+    }
+    if (!options.force || this.runningForce) return this.running
+    // "Run now": calisan zamanlanmis tur taze oturumlari atlar, o yuzden elle
+    // baslatilan tur yutulmaz, siraya alinir.
+    this.queuedForce ??= this.running.catch(() => undefined).then(() => {
+      this.queuedForce = null
+      return this.run(options)
+    })
+    return this.queuedForce
   }
 
   /** Hariç tutulan projenin bütün verisini siler. */
   forget(key: string): void {
     const { store } = this.options
+    this.generation++
     store.forgetProject(normalizePath(key))
     store.writeIndex(this.now())
     this.emit({ projects: store.listProjects().length })
   }
 
   clear(): void {
+    this.generation++
     this.options.store.clear()
     this.status = { state: 'idle', projects: 0 }
     this.options.onStatus?.(this.getStatus())
@@ -94,6 +111,9 @@ export class MemoryEngine {
   }
 
   private async execute({ force = false }: RunOptions): Promise<MemoryStatus> {
+    // Tur sirasinda kullanici "Clear"/"Forget" derse yazimlar durur: silinen veri geri gelmesin.
+    const generation = this.generation
+    const stale = (): boolean => generation !== this.generation
     const config = this.options.getConfig()
     const apiKey = this.options.getApiKey()
     if (!config.enabled || !apiKey) return this.getStatus()
@@ -133,7 +153,7 @@ export class MemoryEngine {
 
       let done = 0
       await pool(pending, CONCURRENCY, async (source) => {
-        if (fatal) return
+        if (fatal || stale()) return
         try {
           const digest = await readDigest(source)
           const key = digest.cwd ? projectKey(digest.cwd) : undefined
@@ -157,6 +177,7 @@ export class MemoryEngine {
             affected.add(key)
           }
           if (previous?.projectKey && previous.projectKey !== key) affected.add(previous.projectKey)
+          if (stale()) return
           store.putSession(record)
         } catch (error) {
           if (isFatal(error)) fatal = (error as Error).message
@@ -166,9 +187,9 @@ export class MemoryEngine {
         }
       })
 
-      if (!fatal) {
+      if (!fatal && !stale()) {
         for (const key of affected) {
-          if (excluded.has(key)) continue
+          if (excluded.has(key) || stale()) continue
           const sessions = store.sessionsForProject(key)
           if (!sessions.length) {
             store.deleteProject(key)
@@ -179,7 +200,7 @@ export class MemoryEngine {
             const result = await call({ messages: mergeMessages(path, sessions), maxTokens: 6_000 })
             // Kesilen cevapta yarım kalan son satırı at.
             const body = result.truncated ? result.content.replace(/\n[^\n]*$/, '') : result.content
-            store.writeProject(key, projectMarkdown({ key, path, body, now, sessions }))
+            if (!stale()) store.writeProject(key, projectMarkdown({ key, path, body, now, sessions }))
           } catch (error) {
             if (isFatal(error)) {
               fatal = (error as Error).message
@@ -189,7 +210,7 @@ export class MemoryEngine {
           }
         }
       }
-      store.writeIndex(now)
+      if (!stale()) store.writeIndex(now)
     } catch (error) {
       fatal = error instanceof Error ? error.message : String(error)
     }

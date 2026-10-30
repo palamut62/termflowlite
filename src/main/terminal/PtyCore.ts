@@ -76,7 +76,8 @@ export class PtyCore {
 
     const resolved = resolveShell(input)
     if (process.platform === 'win32') {
-      resolved.shell = executablePath(resolved.shell)
+      // Profil kendi PATH'ini veriyorsa program orada aranir.
+      resolved.shell = executablePath(resolved.shell, resolved.env.Path || resolved.env.PATH || undefined)
       if (!isWindowsExecutable(resolved.shell)) throw new Error('Select a Windows executable or a supported CLI profile. This file cannot be started directly.')
     }
     Object.assign(resolved, applyShellIntegration(resolved, input))

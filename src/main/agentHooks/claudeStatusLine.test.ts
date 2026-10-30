@@ -20,3 +20,11 @@ it('uses local over project over user settings and tolerates broken files', () =
   writeFileSync(join(project, '.claude', 'settings.local.json'), statusLine('local-line'))
   expect(effectiveClaudeStatusLine(project, home)).toBe('local-line')
 })
+
+it('reads the user setting from the profile own Claude account', () => {
+  const home = mkdtempSync(join(tmpdir(), 'tf-claude-home-'))
+  const account = join(home, '.claude-work')
+  mkdirSync(account, { recursive: true })
+  writeFileSync(join(account, 'settings.json'), JSON.stringify({ statusLine: { type: 'command', command: 'work-line' } }))
+  expect(effectiveClaudeStatusLine(undefined, home, account)).toBe('work-line')
+})

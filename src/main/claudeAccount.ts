@@ -1,3 +1,4 @@
+import { readdirSync } from 'fs'
 import { lstat, mkdir, readdir, readFile, rmdir, symlink } from 'fs/promises'
 import { homedir } from 'os'
 import { isAbsolute, join, normalize } from 'path'
@@ -7,6 +8,26 @@ import { CLAUDE_CONFIG_ENV, parseClaudeLogin, type ClaudeLogin } from '../shared
 const SHARED = ['projects', 'skills']
 
 export const defaultClaudeDir = (): string => process.env[CLAUDE_CONFIG_ENV] || join(homedir(), '.claude')
+
+/**
+ * Bu bilgisayardaki butun Claude config klasorleri: varsayilan (ya da
+ * CLAUDE_CONFIG_DIR) + `~/.claude*` kardesleri. Ikinci hesapla acilmis bir
+ * sekmenin dokumu/alt ajanlari varsayilan klasorde degil, kendi klasorundedir.
+ */
+export function claudeConfigDirs(home = homedir()): string[] {
+  const dirs = [process.env[CLAUDE_CONFIG_ENV] || join(home, '.claude')]
+  const same = (a: string, b: string): boolean => a.replace(/[\/]+$/, '').toLowerCase() === b.replace(/[\/]+$/, '').toLowerCase()
+  try {
+    for (const entry of readdirSync(home, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !entry.name.startsWith('.claude')) continue
+      const dir = join(home, entry.name)
+      if (!dirs.some((known) => same(known, dir))) dirs.push(dir)
+    }
+  } catch {
+    // Home okunamadi: varsayilan klasorle devam.
+  }
+  return dirs
+}
 
 export function suggestAccountDir(name: string): string {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'account'

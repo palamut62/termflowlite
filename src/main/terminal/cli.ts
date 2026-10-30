@@ -7,6 +7,7 @@ import { splitCommandLine } from '../../shared/commandLine'
 import { agentHookArgs } from '../../shared/agentHooks'
 import type { CreateTerminalInput } from '../../shared/types'
 import type { HookLaunch } from '../agentHooks/hookServer'
+import { currentSearchPath } from './ShellDiscovery'
 
 const exec = promisify(execFile)
 function isFile(path: string): boolean { try { return statSync(path).isFile() } catch { return false } }
@@ -23,7 +24,9 @@ export function isWindowsExecutable(file: string): boolean {
   finally { if (fd !== undefined) closeSync(fd) }
 }
 
-export function executablePath(command: string, searchPath = process.env.Path || process.env.PATH || ''): string {
+// Varsayilan arama yolu kayit defteri onbellegini de icerir: uygulama acikken kurulan
+// bir CLI, yeniden baslatmadan bulunur (agentDetect listede gosterdigi halde "CLI not found" diyordu).
+export function executablePath(command: string, searchPath = currentSearchPath()): string {
   const paths = isAbsolute(command) ? [''] : [
     ...searchPath.split(delimiter),
     ...(process.platform === 'win32' ? [join(process.env.APPDATA || '', 'npm')] : [])

@@ -2,12 +2,15 @@ import { closeSync, openSync, readSync, statSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { basename, dirname, join } from 'path'
 import { StringDecoder } from 'string_decoder'
-import { defaultClaudeDir } from './claudeAccount'
+import { existsSync } from 'fs'
+import { claudeConfigDirs } from './claudeAccount'
 
 /** Resolve the originating command for display only. Never execute transcript content. */
 export async function shellTaskDescription(file: string): Promise<string | undefined> {
   const session = dirname(dirname(file))
-  const transcript = join(defaultClaudeDir(), 'projects', basename(dirname(session)), `${basename(session)}.jsonl`)
+  // Ikinci bir Claude hesabiyla acilmis oturumun dokumu kendi config klasorundedir.
+  const candidates = claudeConfigDirs().map((dir) => join(dir, 'projects', basename(dirname(session)), `${basename(session)}.jsonl`))
+  const transcript = candidates.find((file) => existsSync(file)) ?? candidates[0]
   const id = basename(file, '.output')
   try {
     const calls = new Map<string, string>()
