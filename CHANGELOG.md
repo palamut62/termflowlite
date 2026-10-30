@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.30.1 - 2026-10-30
+
+- "Open in VS Code" works on folders again: the project and worktree menus in the sidebar and the folder menu in the file panel opened nothing before. Without a VS Code family editor the folder opens in Explorer.
+- Windows Explorer menu: starting a folder with Gemini CLI, Antigravity, Grok, Qwen Code, GitHub Copilot CLI, Droid, Kimi, Pi, Codebuff, Cursor Agent, Amp, Aider or Crush opens that agent. It used to ignore the choice and open a PowerShell tab.
+
 ## 1.30.0 - 2026-10-29
 
 - Hands-free voice input: press Ctrl+Shift+Space once and just talk, no key to hold. It stops by itself when you pause (1 to 4 seconds, or only with Space) and types the text. Hold-to-talk with Space works as before.

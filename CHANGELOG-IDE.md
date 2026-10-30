@@ -1,5 +1,10 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.30.1 - 2026-10-30
+
+- Everything in TermFlow Lite 1.30.1: "Open in VS Code" works on folders (project, worktree and file panel menus), and the Windows Explorer menu starts the agent you picked instead of a PowerShell tab.
+- Delegation: Antigravity, Gemini CLI, Qwen Code, GitHub Copilot CLI, Kimi and Droid keep the model and the on/off switch you set in Settings > Orchestration, and their Test and model list buttons work. Their settings were being discarded and the buttons answered "Unknown target".
+
 ## 1.30.0 - 2026-10-29
 
 - Everything in TermFlow Lite 1.30.0: hands-free voice input (Ctrl+Shift+Space, stops when you pause), say "send" to submit in agent tabs, a terms list for dictation, and broadcast frames on the split panes that receive your typing, with the SSH host shown in the corner of remote panes.
