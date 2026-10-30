@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.31.1 - 2026-10-30
+
+- The Agent Inbox keeps what the other agents did. In 1.31.0 their entries were shown while the app was open but never saved, so they were gone after a restart.
+- A busy agent no longer makes the window stutter: inbox entries are written in the background instead of one blocking disk write per event.
+
 ## 1.31.0 - 2026-10-30
 
 - Every agent in the catalogue is treated as an agent, not only Claude Code, Codex and OpenCode. In Antigravity, Gemini CLI, Qwen Code, GitHub Copilot CLI, Grok, Droid, Kimi, Pi, Codebuff, Cursor Agent, Amp, Aider and Crush tabs:

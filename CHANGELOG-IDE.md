@@ -1,5 +1,10 @@
 # TermFlow Agent IDE - Changelog
 
+## 1.31.1 - 2026-10-30
+
+- Everything in TermFlow Lite 1.31.1: the Agent Inbox now keeps the entries of every agent across restarts, and they are written in the background so a busy agent does not make the window stutter.
+- Delegated tasks no longer leave a worktree behind. The folder is recorded as soon as it is created, so Discard can still remove it when TermFlow was closed mid-task; records that age out of the list take their worktree with them; and cancelling also stops a check command that had already started.
+
 ## 1.31.0 - 2026-10-30
 
 - Everything in TermFlow Lite 1.31.0: every agent in the catalogue (Gemini CLI, Qwen Code, Antigravity, Copilot, Grok, Droid, Kimi and the rest) now gets voice input as a prompt, Shift+Enter for a new line, agent status on the phone and in the widget, and its own line in the Agent Inbox.
